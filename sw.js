@@ -1,13 +1,16 @@
-const CACHE_NAME = 'education-progress-platform-v3.2';
+const CACHE_NAME = 'education-progress-platform-v4.0';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './styles/v3.css',
+  './styles/v4.css',
   './scripts/firebase-config.js',
-  './scripts/platform.js'
+  './scripts/i18n.js',
+  './scripts/student-journey.js',
+  './scripts/data-service.js',
+  './scripts/platform.js',
 ];
 
 self.addEventListener('install', event => {
@@ -22,6 +25,8 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// Network-first keeps app code and configuration current while preserving a safe
+// offline fallback for the already-installed shell.
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
