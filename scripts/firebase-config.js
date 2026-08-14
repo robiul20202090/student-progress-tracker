@@ -6,13 +6,14 @@
  * Do not paste configuration from the earlier single-file tracker here.
  */
 export const firebaseConfig = {
-  apiKey: 'REPLACE_WITH_NEW_FIREBASE_API_KEY',
-  authDomain: 'REPLACE_WITH_NEW_PROJECT.firebaseapp.com',
-  projectId: 'REPLACE_WITH_NEW_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_NEW_PROJECT.firebasestorage.app',
-  messagingSenderId: 'REPLACE_WITH_NEW_MESSAGING_SENDER_ID',
-  appId: 'REPLACE_WITH_NEW_WEB_APP_ID'
+  apiKey: 'AIzaSyD7Qg8QLnIIhmSAyJUQUkDkgjvVH0nfXbo',
+  authDomain: 'educational-progress--v3.firebaseapp.com',
+  projectId: 'educational-progress--v3',
+  storageBucket: 'educational-progress--v3.firebasestorage.app',
+  messagingSenderId: '968211421497',
+  appId: '1:968211421497:web:32e1665aeb6c09b09170e8'
 };
+
 
 // This account is the first platform super-administrator. Change it before
 // publishing only if a different account should own the new project.
