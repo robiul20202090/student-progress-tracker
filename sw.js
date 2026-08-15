@@ -1,4 +1,4 @@
-const CACHE_NAME = 'education-progress-platform-v4.0';
+const CACHE_NAME = 'education-progress-platform-v4.2.1';
 const APP_SHELL = [
   './',
   './index.html',
