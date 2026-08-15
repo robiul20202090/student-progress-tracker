@@ -1,4 +1,4 @@
-const CACHE_NAME = 'education-progress-platform-v4.2.1';
+const CACHE_NAME = 'education-progress-platform-v4.4.0';
 const APP_SHELL = [
   './',
   './index.html',
@@ -31,14 +31,29 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-  event.respondWith(
-    fetch(event.request).then(response => {
-      if (response && response.ok) {
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
+
+  const networkResponse = fetch(event.request).then(response => {
+    if (response && response.ok) {
+      // A response body may already be consumed by the browser or another
+      // handler. Clone defensively, and never let a cache failure replace a
+      // valid network response.
+      let copy = null;
+      try {
+        copy = response.clone();
+      } catch (_) {
+        copy = null;
       }
-      return response;
-    }).catch(() => caches.match(event.request).then(cached =>
-      cached || (event.request.mode === 'navigate' ? caches.match('./index.html') : Response.error())
-    ))
-  );
+      if (copy) {
+        const cacheWrite = caches.open(CACHE_NAME)
+          .then(cache => cache.put(event.request, copy))
+          .catch(() => undefined);
+        event.waitUntil(cacheWrite);
+      }
+    }
+    return response;
+  }).catch(() => caches.match(event.request).then(cached =>
+    cached || (event.request.mode === 'navigate' ? caches.match('./index.html') : Response.error())
+  ));
+
+  event.respondWith(networkResponse);
 });
