@@ -29,6 +29,9 @@
           <h1 id="signInTitle">শিক্ষকের জন্য অগ্রগতি ব্যবস্থাপনা</h1>
           <p id="signInText">শিক্ষার্থী, ব্যাচ, অভিভাবক ও শেখার পরিকল্পনা এক জায়গা থেকে পরিচালনা করুন।</p>
           <button id="googleSignInBtn" class="btn btn-google btn-wide" type="button"><span class="google-g">G</span><span data-copy="signInGoogle">Google দিয়ে সাইন ইন করুন</span></button>
+          <div class="guest-mode-divider"><span data-copy="orTesting">অথবা পরীক্ষামূলকভাবে</span></div>
+          <button id="guestModeBtn" class="btn btn-guest btn-wide" type="button"><span>◈</span><span data-copy="guestMode">অস্থায়ী Guest/Test Mode</span></button>
+          <p class="guest-mode-warning" data-copy="guestModeWarning">শুধু ডেমো তথ্য। Firebase বা আসল শিক্ষার্থীর তথ্য ব্যবহার হবে না।</p>
           <button id="openGuardianBtn" class="text-action" type="button" data-copy="guardianAccess">অভিভাবক প্রবেশ</button>
           <div class="auth-language"><button class="language-choice active" data-language="bn" type="button">বাংলা</button><span>·</span><button class="language-choice" data-language="en" type="button">English</button></div>
         </article>
@@ -87,6 +90,6 @@
     <dialog id="appModal" class="app-modal"><div id="modalBody"></div></dialog>
     <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
   </div>
-  <script type="module" src="scripts/platform.js?v=4.4.0"></script>
+  <script type="module" src="scripts/platform.js?v=4.5.0"></script>
 </body>
 </html>
