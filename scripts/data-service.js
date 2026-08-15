@@ -19,7 +19,31 @@ export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 
 if (db) {
-  try { enableIndexedDbPersistence(db); } catch (_) { /* Multiple tabs or unsupported storage. Online mode remains available. */ }
+  // Option A: Firestore keeps authorised workspace data and queued writes in
+  // IndexedDB so a teacher can keep working after an initial online visit.
+  // The catch is required because another tab or unavailable device storage
+  // must never stop the normal online workspace from loading.
+  enableIndexedDbPersistence(db).catch(error => {
+    console.warn('Offline workspace storage is unavailable; online mode remains available.', error?.code || error);
+  });
+}
+
+export function subscribeConnectionState(listener) {
+  const state = () => ({
+    online: typeof navigator === 'undefined' ? true : navigator.onLine,
+    // Firestore automatically sends locally queued writes once connectivity
+    // returns. While the browser is offline this label is deliberately clear.
+    status: typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced',
+  });
+  const emit = () => listener(state());
+  emit();
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('online', emit);
+  window.addEventListener('offline', emit);
+  return () => {
+    window.removeEventListener('online', emit);
+    window.removeEventListener('offline', emit);
+  };
 }
 
 const clean = value => String(value ?? '').trim();
@@ -81,6 +105,17 @@ export async function ensureProfile(user) {
   } else {
     await updateDoc(ref, base);
   }
+  // The directory intentionally contains account-management metadata only. It
+  // never copies students, reports, or other child information.
+  await setDoc(doc(db, 'userDirectory', user.uid), {
+    uid: user.uid,
+    name: base.name,
+    email: base.email,
+    photoURL: base.photoURL,
+    lastActiveAt: serverTimestamp(),
+    schemaVersion: SCHEMA_VERSION,
+    ...(before.exists() ? {} : { createdAt: serverTimestamp() }),
+  }, { merge: true });
   const after = await getDoc(ref);
   return after.data();
 }
@@ -207,7 +242,46 @@ export async function saveStudentPlan(teacherUid, studentId, patch) {
       ...(patch.weeklyReflection ? { parentGuidance: clean(reflection.parentGuidance), nextWeekPlan: clean(reflection.nextWeekPlan) } : {}),
     }),
   }, { merge: true });
+  await queueGuardianNotification(teacherUid, studentId, { type: 'learning-plan', label: patch.guardianSummary?.goal || patch.weeklyReflection?.nextWeekPlan || 'Learning plan updated' });
   await activity(teacherUid, 'student-plan-updated', { studentId });
+}
+
+async function queueGuardianNotification(teacherUid, studentId, notice = {}) {
+  // Resolve approvals server-side through the teacher-only reverse index, then
+  // write a minimal pointer. Notifications never duplicate private teacher notes.
+  try {
+    const guardians = await listStudentGuardians(studentId);
+    if (!guardians.length) return;
+    // The guardian report already contains the only name approved for this
+    // guardian-facing projection. Reuse it rather than copying teacher notes.
+    const report = await getDoc(doc(db, 'guardianReports', studentId));
+    const studentName = clean(report.exists() ? report.data().name : '');
+    const operation = writeBatch(db);
+    guardians.forEach(guardian => {
+      const notificationId = id('notice');
+      operation.set(doc(db, 'guardianNotifications', guardian.guardianUid, 'items', notificationId), {
+        ...nowEnvelope(teacherUid, {
+          notificationId,
+          guardianUid: guardian.guardianUid,
+          studentId,
+          studentName,
+          type: clean(notice.type) || 'student-update',
+          targetId: clean(notice.targetId),
+          subject: clean(notice.subject),
+          // This is deliberately restricted to a safe navigation hint; private
+          // notes and scores remain in their protected projection documents.
+          label: clean(notice.label).slice(0, 140),
+          readAt: null,
+          createdAt: serverTimestamp(),
+        }),
+      });
+    });
+    await operation.commit();
+  } catch (error) {
+    // The learning record is already durable. A notification delivery problem
+    // must not report a failed lesson, assessment, or plan save to the teacher.
+    console.warn('Guardian notification was not queued.', error?.code || error);
+  }
 }
 
 export async function addDailyLog(teacherUid, studentId, payload) {
@@ -235,6 +309,7 @@ export async function addDailyLog(teacherUid, studentId, payload) {
   operation.set(doc(db, 'studentPlans', studentId, 'dailyLogs', logId), record);
   operation.set(doc(db, 'guardianReports', studentId, 'dailyLogs', logId), guardianRecord);
   await operation.commit();
+  await queueGuardianNotification(teacherUid, studentId, { type: 'daily-log', targetId: logId, subject, label: topic });
   await Promise.all([activity(teacherUid, 'daily-log-added', { studentId, subject, topic, logId }), audit(teacherUid, 'daily_log_created', { studentId, logId })]);
   return { id: logId, ...record };
 }
@@ -270,6 +345,7 @@ export async function addAssessment(teacherUid, studentId, payload) {
   operation.set(doc(db, 'studentPlans', studentId, 'assessments', assessmentId), record);
   operation.set(doc(db, 'guardianReports', studentId, 'assessments', assessmentId), guardianRecord);
   await operation.commit();
+  await queueGuardianNotification(teacherUid, studentId, { type: 'assessment', targetId: assessmentId, subject: record.subject, label: record.title });
   await Promise.all([activity(teacherUid, 'assessment-added', { studentId, title, assessmentId }), audit(teacherUid, 'assessment_created', { studentId, assessmentId })]);
   return { id: assessmentId, ...record };
 }
@@ -502,6 +578,17 @@ export async function guardianApprovals(guardianUid) {
   return result.docs.map(item => ({ id: item.id, ...item.data() }));
 }
 
+export async function guardianNotifications(guardianUid) {
+  const result = await getDocs(query(collection(db, 'guardianNotifications', guardianUid, 'items'), limit(100)));
+  return result.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function markGuardianNotificationRead(guardianUid, notificationId) {
+  await updateDoc(doc(db, 'guardianNotifications', guardianUid, 'items', notificationId), {
+    readAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+}
+
 export async function guardianBatchAccess(guardianUid) {
   const result = await getDocs(query(collection(db, 'batchGuestAccess', guardianUid, 'batches'), limit(100)));
   return result.docs.map(item => ({ id: item.id, ...item.data() }));
@@ -530,13 +617,73 @@ export async function guardianStudentReport(studentId) {
 }
 
 export async function createOrUpdatePresence(studentId, guardianUid) {
-  await setDoc(doc(db, 'presence', studentId, 'viewers', guardianUid), { lastSeen: serverTimestamp(), expiresAt: Date.now() + 180000 }, { merge: true });
+  // Presence is deliberately minimal: it proves that an approved guardian is
+  // viewing a report without exposing report contents or teacher-private data.
+  await setDoc(doc(db, 'presence', studentId, 'viewers', guardianUid), {
+    schemaVersion: SCHEMA_VERSION,
+    studentId,
+    guardianUid,
+    lastSeen: serverTimestamp(),
+    expiresAt: Date.now() + 180000,
+  }, { merge: true });
 }
 
 export async function getStudentPresenceCount(studentId) {
   const viewers = await getDocs(query(collection(db, 'presence', studentId, 'viewers'), limit(100)));
   const now = Date.now();
   return viewers.docs.filter(item => (item.data().expiresAt || 0) > now).length;
+}
+
+export async function listAdminAccounts() {
+  // This directory is intentionally account-only. Joining the role and block
+  // indexes gives the super-admin operational status without querying student,
+  // guardian, plan, report, or lesson data.
+  const [directory, roles, blocked] = await Promise.all([
+    getDocs(query(collection(db, 'userDirectory'), limit(500))),
+    getDocs(query(collection(db, 'adminRoles'), limit(500))),
+    getDocs(query(collection(db, 'blockedUsers'), limit(500))),
+  ]);
+  const administratorIds = new Set(roles.docs.filter(item => item.data().isAdmin === true).map(item => item.id));
+  const blockedById = new Map(blocked.docs.map(item => [item.id, item.data()]));
+  return directory.docs.map(item => ({
+    id: item.id,
+    ...item.data(),
+    isAdmin: administratorIds.has(item.id),
+    isBlocked: blockedById.has(item.id),
+    blockReason: blockedById.get(item.id)?.reason || '',
+  }));
+}
+
+export async function listAdminAudit() {
+  const result = await getDocs(query(collection(db, 'auditLogs'), limit(100)));
+  return result.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function setAccountBlocked(actorUid, account, blocked, reason = '') {
+  const uid = clean(account?.uid || account?.id);
+  if (!uid) throw new Error('Account identifier is required.');
+  if (uid === actorUid) throw new Error('The super-admin account cannot block itself.');
+  if (blocked) {
+    await writeBatch(db)
+      .set(doc(db, 'blockedUsers', uid), { uid, blockedByUid: actorUid, reason: clean(reason), createdAt: serverTimestamp(), updatedAt: serverTimestamp(), schemaVersion: SCHEMA_VERSION })
+      .update(doc(db, 'users', uid), { status: 'blocked', updatedAt: serverTimestamp() })
+      .commit();
+  } else {
+    await writeBatch(db)
+      .delete(doc(db, 'blockedUsers', uid))
+      .update(doc(db, 'users', uid), { status: 'active', updatedAt: serverTimestamp() })
+      .commit();
+  }
+  await audit(actorUid, blocked ? 'account_blocked' : 'account_unblocked', { targetUid: uid, reason: clean(reason) });
+}
+
+export async function setAdministratorRole(actorUid, account, isAdmin) {
+  const uid = clean(account?.uid || account?.id);
+  if (!uid || uid === actorUid) throw new Error('Choose a different account to change administrator access.');
+  const ref = doc(db, 'adminRoles', uid);
+  if (isAdmin) await setDoc(ref, { uid, isAdmin: true, assignedByUid: actorUid, updatedAt: serverTimestamp(), schemaVersion: SCHEMA_VERSION }, { merge: true });
+  else await deleteDoc(ref);
+  await audit(actorUid, isAdmin ? 'administrator_granted' : 'administrator_removed', { targetUid: uid });
 }
 
 export async function listCurriculumVersions(includeUnpublished = false) {
