@@ -7,7 +7,7 @@ import {
   collection, query, where, onSnapshot, writeBatch, serverTimestamp,
   enableIndexedDbPersistence, limit,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { firebaseConfig, superAdminEmail, firebaseConfigured } from './firebase-config.js?v=4.0.0';
+import { firebaseConfig, superAdminEmail, firebaseConfigured } from './firebase-config.js?v=4.4.0';
 
 export const SCHEMA_VERSION = 4;
 export const SUPER_ADMIN = (superAdminEmail || '').toLowerCase();
@@ -18,14 +18,20 @@ const app = firebaseConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 
-if (db) {
+if (db && !globalThis.__sptFirestorePersistenceAttempted) {
   // Option A: Firestore keeps authorised workspace data and queued writes in
   // IndexedDB so a teacher can keep working after an initial online visit.
-  // The catch is required because another tab or unavailable device storage
-  // must never stop the normal online workspace from loading.
-  enableIndexedDbPersistence(db).catch(error => {
-    console.warn('Offline workspace storage is unavailable; online mode remains available.', error?.code || error);
-  });
+  // The page-level guard prevents duplicate module URLs from attempting to
+  // start persistence twice; the synchronous and async catches also ensure
+  // another tab or unavailable storage never blocks the normal online app.
+  globalThis.__sptFirestorePersistenceAttempted = true;
+  try {
+    enableIndexedDbPersistence(db).catch(error => {
+      console.warn('Offline workspace storage is unavailable; online mode remains available.', error?.code || error);
+    });
+  } catch (error) {
+    console.warn('Offline workspace storage could not start; online mode remains available.', error?.code || error);
+  }
 }
 
 export function subscribeConnectionState(listener) {
@@ -157,7 +163,41 @@ export function subscribeTeacherWorkspace(teacherUid, handlers) {
   unsubs.push(onSnapshot(query(collection(db, 'teacherActivity', teacherUid, 'items'), limit(30)), snap => {
     handlers.activity?.(snap.docs.map(item => ({ id: item.id, ...item.data() })));
   }, handlers.error));
+  unsubs.push(onSnapshot(query(collection(db, 'teacherTasks', teacherUid, 'items'), limit(200)), snap => {
+    handlers.tasks?.(snap.docs.map(item => ({ id: item.id, ...item.data() })));
+  }, handlers.error));
   return () => unsubs.forEach(stop => { try { stop(); } catch (_) {} });
+}
+
+export async function createTeacherTask(teacherUid, payload = {}) {
+  if (!db || !teacherUid) throw new Error('A teacher account is required.');
+  const title = clean(payload.title);
+  if (!title) throw new Error('Task title is required.');
+  const taskId = id('task');
+  const record = {
+    ...nowEnvelope(teacherUid, {
+      title,
+      kind: payload.kind === 'batch' ? 'batch' : 'student',
+      targetId: clean(payload.targetId),
+      targetName: clean(payload.targetName),
+      dueDate: optional(payload.dueDate),
+      status: payload.status === 'done' ? 'done' : 'due',
+    }),
+  };
+  await setDoc(doc(db, 'teacherTasks', teacherUid, 'items', taskId), record);
+  await activity(teacherUid, 'teacher-task-created', { taskId, title, kind: record.kind, targetId: record.targetId });
+  return { id: taskId, ...record };
+}
+
+export async function updateTeacherTask(teacherUid, taskId, patch = {}) {
+  if (!db || !teacherUid || !taskId) return;
+  const allowed = {};
+  if (Object.prototype.hasOwnProperty.call(patch, 'title')) allowed.title = clean(patch.title);
+  if (Object.prototype.hasOwnProperty.call(patch, 'dueDate')) allowed.dueDate = optional(patch.dueDate);
+  if (Object.prototype.hasOwnProperty.call(patch, 'status')) allowed.status = patch.status === 'done' ? 'done' : 'due';
+  if (!Object.keys(allowed).length) return;
+  await updateDoc(doc(db, 'teacherTasks', teacherUid, 'items', taskId), { ...allowed, updatedAt: serverTimestamp() });
+  await activity(teacherUid, 'teacher-task-updated', { taskId, status: allowed.status || 'due' });
 }
 
 export async function listTeacherStudents(teacherUid) {
