@@ -1,6 +1,6 @@
 import {
   TaskStatus, getStudentPlan, listDailyLogs, listAssessments, addAssessment, saveStudentPlan,
-} from './data-service.js?v=4.4.0';
+} from './demo-service.js?v=4.5.0';
 
 const STATUS_ORDER = [TaskStatus.NOT_STARTED, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.REVISION];
 

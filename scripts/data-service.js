@@ -7,7 +7,7 @@ import {
   collection, query, where, onSnapshot, writeBatch, serverTimestamp,
   enableIndexedDbPersistence, limit,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { firebaseConfig, superAdminEmail, firebaseConfigured } from './firebase-config.js?v=4.4.0';
+import { firebaseConfig, superAdminEmail, firebaseConfigured } from './firebase-config.js?v=4.5.0';
 
 export const SCHEMA_VERSION = 4;
 export const SUPER_ADMIN = (superAdminEmail || '').toLowerCase();
