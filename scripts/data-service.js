@@ -511,7 +511,17 @@ export async function listBatchSessions(batchId) {
 
 export async function lookupRoom(code) {
   const snapshot = await getDoc(doc(db, 'roomCodes', normaliseRoomCode(code)));
-  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  if (!snapshot.exists() || snapshot.data()?.status === 'terminated') return null;
+  return { id: snapshot.id, ...snapshot.data() };
+}
+
+export async function terminateStudentRoom(teacherUid, student) {
+  if (!student?.id || !student?.roomCode) return;
+  const operation = writeBatch(db);
+  operation.update(doc(db, 'roomCodes', normaliseRoomCode(student.roomCode)), { status: 'terminated', terminatedAt: serverTimestamp(), ...nowEnvelope(teacherUid) });
+  operation.update(doc(db, 'students', student.id), { roomCode: null, ...nowEnvelope(teacherUid) });
+  await operation.commit();
+  await activity(teacherUid, 'student-room-terminated', { studentId: student.id });
 }
 
 export async function createGuardianRequest(guardian, room, childName = '') {

@@ -1,4 +1,4 @@
-import * as live from './data-service.js?v=4.5.0';
+import * as live from './data-service.js?v=4.8.0';
 
 const DEMO_FLAG = 'spt-guest-mode-v1';
 const DEMO_STATE_KEY = 'spt-guest-state-v1';
@@ -86,6 +86,12 @@ function load() {
   if (state) return state;
   try { state = JSON.parse(localStorage.getItem(DEMO_STATE_KEY) || 'null'); } catch (_) { state = null; }
   if (!state || state.schemaVersion !== 1) state = defaultState();
+  state.rooms ||= {};
+  state.students ||= [];
+  state.students.forEach(student => {
+    const active = Object.values(state.rooms).find(room => room?.type === 'student' && room.studentId === student.id && room.status !== 'terminated');
+    student.roomCode = active?.code || null;
+  });
   return state;
 }
 function save() {
@@ -180,8 +186,31 @@ export async function listAssessments(studentId) { return isGuestMode() ? clone(
 
 export async function createBatchRoom(teacherUid, student, teacherName = 'ডেমো শিক্ষক') {
   if (!isGuestMode()) return live.createBatchRoom(teacherUid, student, teacherName);
+  const store = ensure();
+  const current = store.students.find(item => item.id === student?.id);
+  if (!current) return '';
+  const active = Object.values(store.rooms).find(room => room?.type === 'student' && room.studentId === current.id && room.status !== 'terminated');
+  if (active) { current.roomCode = active.code; save(); return active.code; }
   const code = `DEMO-${String(Math.floor(Math.random() * 90) + 10)}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-  ensure().rooms[code] = { code, type: 'student', studentId: student.id, roomName: student.name, teacherUid, teacherName, description: 'ডেমো শিক্ষার্থী রুম', accessMode: RoomAccessMode.APPROVAL, createdAt: DEMO_NOW() }; notify(); return code;
+  current.roomCode = code;
+  current.updatedAt = DEMO_NOW();
+  store.rooms[code] = { code, type: 'student', studentId: current.id, roomName: current.name, teacherUid, teacherName, description: 'ডেমো শিক্ষার্থী রুম', accessMode: RoomAccessMode.APPROVAL, createdAt: DEMO_NOW() };
+  save();
+  notify(); return code;
+}
+export async function terminateStudentRoom(teacherUid, student) {
+  if (!isGuestMode()) return live.terminateStudentRoom(teacherUid, student);
+  const store = ensure();
+  const current = store.students.find(item => item.id === student?.id);
+  const code = student?.roomCode || current?.roomCode || Object.keys(store.rooms).find(key => {
+    const room = store.rooms[key];
+    return room?.type === 'student' && room?.studentId === student?.id && room?.status !== 'terminated';
+  });
+  Object.values(store.rooms).forEach(room => {
+    if (room?.type === 'student' && room.studentId === student?.id && room.status !== 'terminated') room.status = 'terminated';
+  });
+  if (current) current.roomCode = null;
+  notify();
 }
 export async function createBatch(teacherUid, payload = {}, teacherName = 'ডেমো শিক্ষক') {
   if (!isGuestMode()) return live.createBatch(teacherUid, payload, teacherName);
