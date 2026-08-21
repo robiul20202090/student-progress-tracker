@@ -1,25 +1,17 @@
 {
-  "name": "শিক্ষা অগ্রগতি",
-  "short_name": "শিক্ষা অগ্রগতি",
-  "description": "শিক্ষক, শিক্ষার্থী ও অভিভাবকের জন্য নিরাপদ অগ্রগতি ব্যবস্থাপনা প্ল্যাটফর্ম",
+  "name": "শিক্ষার্থীর অগ্রগতি",
+  "short_name": "শিক্ষার্থীর অগ্রগতি",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#f7fbff",
-  "theme_color": "#075985",
-  "categories": ["education", "productivity"],
+  "background_color": "#f4f9fc",
+  "theme_color": "#1568c8",
+  "lang": "bn",
+  "description": "শিক্ষার্থী, ব্যাচ, শেখার পরিকল্পনা ও অভিভাবক যোগাযোগের অগ্রগতি প্ল্যাটফর্ম।",
   "icons": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

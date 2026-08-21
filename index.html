@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#1568c8">
   <meta name="description" content="শিক্ষার্থী, ব্যাচ, শেখার পরিকল্পনা ও অভিভাবক যোগাযোগের আধুনিক অগ্রগতি প্ল্যাটফর্ম।">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png" sizes="192x192">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" href="icon.svg" sizes="192x192">
+  <link rel="apple-touch-icon" href="icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,13 +17,13 @@
 <body>
   <div id="app" class="app-shell">
     <section id="loadingScreen" class="screen loading-screen" aria-live="polite">
-      <div class="loading-card"><img src="icon-192.png" alt="" class="brand-mark"><div class="spinner"></div><p>অ্যাপ প্রস্তুত করা হচ্ছে…</p></div>
+      <div class="loading-card"><img src="icon.svg" alt="" class="brand-mark"><div class="spinner"></div><p>অ্যাপ প্রস্তুত করা হচ্ছে…</p></div>
     </section>
 
     <section id="signInScreen" class="screen auth-screen hidden">
       <div class="auth-orb auth-orb-one"></div><div class="auth-orb auth-orb-two"></div>
       <div class="auth-wrap">
-        <div class="auth-brand"><img src="icon-192.png" alt="" class="brand-mark"><span id="authBrandName">শিক্ষার্থীর অগ্রগতি</span></div>
+        <div class="auth-brand"><img src="icon.svg" alt="" class="brand-mark"><span id="authBrandName">শিক্ষার্থীর অগ্রগতি</span></div>
         <article class="auth-card">
           <span class="eyebrow" id="signInEyebrow">শিক্ষক ড্যাশবোর্ড</span>
           <h1 id="signInTitle">শিক্ষকের জন্য অগ্রগতি ব্যবস্থাপনা</h1>
@@ -42,7 +42,7 @@
     <section id="guardianScreen" class="screen auth-screen hidden">
       <div class="auth-orb auth-orb-one"></div><div class="auth-orb auth-orb-two"></div>
       <div class="auth-wrap guardian-wrap">
-        <div class="auth-brand guardian-brand"><div class="guardian-brand-title"><img src="icon-192.png" alt="" class="brand-mark"><span data-copy="appName">শিক্ষার্থীর অগ্রগতি</span></div><button id="guardianNoticeBtn" class="guardian-notice-btn" type="button" aria-label="Updates"><span aria-hidden="true">♧</span><span id="guardianNoticeBadge" class="notification-badge hidden" aria-live="polite">0</span></button></div>
+        <div class="auth-brand guardian-brand"><div class="guardian-brand-title"><img src="icon.svg" alt="" class="brand-mark"><span data-copy="appName">শিক্ষার্থীর অগ্রগতি</span></div><button id="guardianNoticeBtn" class="guardian-notice-btn" type="button" aria-label="Updates"><span aria-hidden="true">♧</span><span id="guardianNoticeBadge" class="notification-badge hidden" aria-live="polite">0</span></button></div>
         <article class="auth-card guardian-card" id="guardianCard"></article>
         <button id="guardianBackBtn" class="text-action" type="button" data-copy="back">ফিরে যান</button>
       </div>
@@ -50,7 +50,7 @@
 
     <section id="teacherShell" class="teacher-shell hidden">
       <aside class="sidebar" id="sidebar" aria-label="মূল মেনু">
-        <div class="sidebar-brand"><img src="icon-192.png" alt="" class="brand-mark small"><div><strong data-copy="appName">শিক্ষার্থীর অগ্রগতি</strong><span>Learning workspace</span></div></div>
+        <div class="sidebar-brand"><img src="icon.svg" alt="" class="brand-mark small"><div><strong data-copy="appName">শিক্ষার্থীর অগ্রগতি</strong><span>Learning workspace</span></div></div>
         <nav class="main-nav" id="mainNav">
           <button class="nav-link active" data-view="dashboard" type="button"><span class="nav-icon">⌂</span><span data-copy="dashboard">ড্যাশবোর্ড</span></button>
           <button class="nav-link" data-view="students" type="button"><span class="nav-icon">◉</span><span data-copy="students">শিক্ষার্থী</span></button>
