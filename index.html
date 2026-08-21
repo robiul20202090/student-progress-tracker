@@ -73,7 +73,7 @@
             <button id="quickAddBtn" class="btn btn-primary desktop-action" type="button"><span>＋</span><span data-copy="addDailyUpdate">আজকের আপডেট</span></button>
             <button id="profileBtn" class="profile-chip" type="button" aria-label="অ্যাকাউন্ট"><span id="profileInitial" class="avatar">শি</span><span class="profile-copy"><strong id="profileName">শিক্ষক</strong><small id="profileEmail"></small></span><span>⌄</span></button>
           </div>
-          <div id="profileMenu" class="profile-menu hidden"><button id="exportBtn" type="button" data-copy="exportData">ডেটা এক্সপোর্ট</button><button id="signOutBtn" type="button" data-copy="signOut">সাইন আউট</button></div>
+          <div id="profileMenu" class="profile-menu hidden" role="menu" aria-label="অ্যাকাউন্ট মেনু"><button id="exportBtn" type="button" role="menuitem" data-action="menu-backup"><span class="menu-item-icon" aria-hidden="true">↥</span><span><strong>ব্যাকআপ ও ডেটা</strong><small>ডেটা এক্সপোর্ট বা পরে ইমপোর্ট</small></span></button><button id="settingsBtn" type="button" role="menuitem" data-action="menu-settings"><span class="menu-item-icon" aria-hidden="true">⚙</span><span><strong>সেটিংস ও অ্যাকাউন্ট</strong><small>ভাষা, প্রোফাইল ও ভবিষ্যৎ অপশন</small></span></button></div>
         </header>
         <main id="viewRoot" class="view-root" tabindex="-1"></main>
       </section>
