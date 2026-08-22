@@ -1,4 +1,4 @@
-const CACHE_NAME = 'student-progress-directory-v4-8-3';
+const CACHE_NAME = 'student-progress-directory-v5-0-0';
 const APP_SHELL = [
   './',
   './index.html',
