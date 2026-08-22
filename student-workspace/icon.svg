@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="শিক্ষার্থী প্রগতি">
+  <rect width="128" height="128" rx="28" fill="#075f59"/>
+  <path d="M27 38c14-3 25 1 37 12 12-11 23-15 37-12v51c-14-3-26 1-37 12-11-11-23-15-37-12V38Z" fill="#f6f2e7"/>
+  <path d="M64 50v43M36 49c9-1 18 3 28 11M92 49c-9-1-18 3-28 11" fill="none" stroke="#075f59" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="64" cy="29" r="8" fill="#e2a01d"/>
+</svg>
