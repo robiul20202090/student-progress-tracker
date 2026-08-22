@@ -119,12 +119,14 @@ async function guardianReport(studentId){try{const report=await guardianStudentR
 async function guardianAction(action){if(action==='cancel'){state.guardianRoom=null;renderGuardian();return;}if(action==='continue-shared'){try{state.guardianState=await createGuardianRequest(state.user,state.guardianRoom);state.guardianRoom=null;renderGuardian();}catch(error){err(error);}return;}if(action==='request'||action==='request-child'){try{const childName=$('#guardianChildName')?.value||'';state.guardianState=await createGuardianRequest(state.user,state.guardianRoom,childName);state.guardianRoom=null;renderGuardian();}catch(error){err(error);}return;}if(action==='shared-child'){try{const childName=$('#sharedGuardianChildName')?.value||'';state.guardianState=await requestGuardianChildLink(state.user,state.guardianState.batchId,childName);renderGuardian();}catch(error){err(error);}return;}if(action==='check'){try{const approvals=await guardianApprovals(state.user.uid);if(approvals.length===1)state.guardianState={studentId:approvals[0].studentId};else if(approvals.length>1)state.guardianState={approvals};else{const batches=await guardianBatchAccess(state.user.uid);if(batches[0])state.guardianState={batchId:batches[0].batchId};else state.guardianState=null;}renderGuardian();}catch(error){err(error);}}}
 function openStudentWorkspace(studentId){
   const student=state.students.find(item=>item.id===studentId)||{};
-  const url=new URL('https://robiul20202090.github.io/Student-progress/');
+  const url=new URL('student-workspace/', location.href);
   url.searchParams.set('student',studentId);
   url.searchParams.set('embed','1');
   url.searchParams.set('name',student.name||'');
   url.searchParams.set('grade',student.grade||'');
   url.searchParams.set('school',student.schoolName||student.school||'');
+  url.searchParams.set('teacher',state.profile?.name||state.user?.displayName||'');
+  url.searchParams.set('photo',student.photoUrl||student.photo||'');
   url.searchParams.set('back',location.href);
   window.location.href=url.href;
 }
