@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scholastic-ledger-workspace-v1';
+const CACHE_NAME = 'scholastic-ledger-workspace-v5';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (event) => {
