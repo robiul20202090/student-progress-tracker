@@ -1,5 +1,5 @@
-const CACHE_NAME = 'scholastic-ledger-workspace-v5';
-const APP_SHELL = ['./', './index.html', './manifest.json', './icon.svg'];
+const CACHE_NAME = 'scholastic-ledger-workspace-v10';
+const APP_SHELL = ['./', './index.html', './manifest.json', './brand-logo.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
