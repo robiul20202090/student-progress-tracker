@@ -1,9 +1,9 @@
-const CACHE_NAME = 'student-progress-offline-v12-release-guardian-export';
+const CACHE_NAME = 'student-progress-offline-v15-mobile-final-release';
 const ROOT = './';
 const APP_SHELL = [
-  ROOT, './index.html', './manifest.json', './brand-logo.png', './icon.svg',
-  './styles/approved.css', './styles/batch-workspace.css', './styles/batch-correction.css', './styles/avatar-correction.css', './styles/form-correction.css', './styles/online-guardian.css?v=guardian-v2', './styles/contact-footer.css',
-  './scripts/entry-pwa.js', './scripts/dashboard-v5.js?v=5.3.0', './scripts/backup-wire.js', './scripts/modal-close-fix.js', './scripts/batch-workspace.js?v=batch-test-11', './scripts/locale.js', './scripts/online-firebase.js?v=guardian-v4', './assets/avatars/catalog.js?v=2',
+  ROOT, './index.html', './manifest.json?v=mobile-final-2', './brand-logo.png', './pwa-icon-192-v2.png', './pwa-icon-512-v2.png', './pwa-icon-maskable-512-v2.png',
+  './styles/approved.css', './styles/batch-workspace.css', './styles/batch-correction.css', './styles/avatar-correction.css', './styles/form-correction.css', './styles/online-guardian.css?v=guardian-v3', './styles/contact-footer.css?v=mobile-final-2', './styles/mobile-header-correction.css?v=2',
+  './scripts/entry-pwa.js?v=mobile-final-2', './scripts/dashboard-v5.js?v=mobile-final-2', './scripts/backup-wire.js', './scripts/modal-close-fix.js', './scripts/batch-workspace.js?v=batch-test-11', './scripts/locale.js?v=mobile-final-2', './scripts/online-firebase.js?v=mobile-final-2', './assets/avatars/catalog.js?v=2',
   './student-workspace/index.html', './student-workspace/manifest.json', './student-workspace/brand-logo.png', './student-workspace/icon.svg', './student-workspace/workspace-i18n.js', './student-workspace/assets/index-CUv9GUcr.js', './student-workspace/assets/index-D_Dn3Xft.css'
 ].concat(
   Array.from({ length: 23 }, (_, index) => `./assets/avatars/male-${String(index + 1).padStart(2, '0')}.webp`),
