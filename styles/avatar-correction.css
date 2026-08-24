@@ -1,0 +1,8 @@
+/* Isolated avatar correction: privacy-first visual identities, no real-photo upload. */
+.avatar-change{border:0;background:transparent;color:var(--teal);font:700 11px "Hind Siliguri",sans-serif;padding:0;text-decoration:underline;text-underline-offset:3px}
+.avatar-gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;max-height:min(56vh,520px);overflow:auto;padding:3px}
+.avatar-tile{display:grid;gap:5px;padding:5px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--muted);font-size:10px;font-weight:700}
+.avatar-tile img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;background:#edf5f1}
+.avatar-tile.selected{border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,91,90,.12);color:var(--teal)}
+.avatar-tile:hover{border-color:#87bbb5;transform:translateY(-1px)}
+@media(max-width:620px){.avatar-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:54vh}.avatar-tile{padding:4px}}

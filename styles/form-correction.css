@@ -1,0 +1,12 @@
+/* Isolated guided-form and attendance correction: structured teacher input and recorded-session bars. */
+.batch-modal .form-grid>label{display:block;font-size:13px;font-weight:700;margin:10px 0}
+.batch-modal .form-grid>label small{display:block;margin:4px 0;color:var(--muted);font-weight:400}
+.batch-day-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.batch-day-picker label{display:inline-flex!important;align-items:center;gap:5px;margin:0!important;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12px}
+.batch-day-picker input{width:auto!important;padding:0!important;accent-color:var(--teal)}
+.attendance-key{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;font-size:11px;color:var(--muted)}
+.attendance-key span{display:inline-flex;align-items:center;gap:4px}.attendance-key span:before{content:"";width:9px;height:9px;border-radius:50%;display:inline-block}
+.attendance-key .present-key:before{background:#49a87d}.attendance-key .late-key:before{background:#e2a33b}.attendance-key .absent-key:before{background:#d9655a}.attendance-key em{flex-basis:100%;font-style:normal;color:#7a7067}
+.attendance-segments{height:12px;display:flex;overflow:hidden;border-radius:999px;background:#edf0ed;box-shadow:inset 0 0 0 1px #e4e8e3}
+.attendance-segment{display:block;height:100%;min-width:2px}.attendance-segment.present{background:#49a87d}.attendance-segment.late{background:#e2a33b}.attendance-segment.absent{background:#d9655a}.attendance-blank{height:12px;border:1px dashed #d5d4cd;border-radius:999px;color:transparent}
+@media(max-width:620px){.batch-day-picker{gap:6px}.batch-day-picker label{padding:6px 7px}.attendance-key{gap:6px}.attendance-segments{height:14px}}
