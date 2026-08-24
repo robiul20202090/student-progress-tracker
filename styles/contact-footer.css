@@ -1,0 +1,5 @@
+/* Design reminder: calm Bengali-first teacher dashboard. This footer is a quiet, single-purpose help route, not a support form or workspace feature. */
+.dashboard-contact{display:flex;align-items:center;justify-content:center;gap:7px;margin:38px auto 6px;padding:15px 18px;border-top:1px solid var(--line,#dce5e1);color:var(--muted,#66736f);font:600 13px "Hind Siliguri",sans-serif;text-align:center}
+.dashboard-contact a{color:var(--teal,#0f5b5a);font-weight:700;text-decoration:none;text-underline-offset:3px}
+.dashboard-contact a:hover,.dashboard-contact a:focus-visible{text-decoration:underline}
+@media(max-width:620px){.dashboard-contact{margin-top:26px;padding:14px 10px;flex-wrap:wrap;line-height:1.45}.dashboard-contact a{overflow-wrap:anywhere}}
