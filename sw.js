@@ -1,15 +1,14 @@
-const CACHE_NAME = 'student-progress-directory-v5-0-0';
+const CACHE_NAME = 'student-progress-offline-v12-release-guardian-export';
+const ROOT = './';
 const APP_SHELL = [
-  './',
-  './index.html',
-  './styles/v4.css',
-  './scripts/platform.js',
-  './scripts/i18n.js',
-  './scripts/demo-service.js',
-  './scripts/student-journey.js',
-  './manifest.json',
-  './icon.svg'
-];
+  ROOT, './index.html', './manifest.json', './brand-logo.png', './icon.svg',
+  './styles/approved.css', './styles/batch-workspace.css', './styles/batch-correction.css', './styles/avatar-correction.css', './styles/form-correction.css', './styles/online-guardian.css?v=guardian-v2', './styles/contact-footer.css',
+  './scripts/entry-pwa.js', './scripts/dashboard-v5.js?v=5.3.0', './scripts/backup-wire.js', './scripts/modal-close-fix.js', './scripts/batch-workspace.js?v=batch-test-11', './scripts/locale.js', './scripts/online-firebase.js?v=guardian-v4', './assets/avatars/catalog.js?v=2',
+  './student-workspace/index.html', './student-workspace/manifest.json', './student-workspace/brand-logo.png', './student-workspace/icon.svg', './student-workspace/workspace-i18n.js', './student-workspace/assets/index-CUv9GUcr.js', './student-workspace/assets/index-D_Dn3Xft.css'
+].concat(
+  Array.from({ length: 23 }, (_, index) => `./assets/avatars/male-${String(index + 1).padStart(2, '0')}.webp`),
+  Array.from({ length: 26 }, (_, index) => `./assets/avatars/female-${String(index + 1).padStart(2, '0')}.webp`)
+);
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
@@ -27,5 +26,5 @@ self.addEventListener('fetch', event => {
     const copy = response.clone();
     caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
     return response;
-  }).catch(() => caches.match('./index.html'))));
+  }).catch(() => event.request.mode === 'navigate' ? caches.match('./index.html') : caches.match(event.request))));
 });
