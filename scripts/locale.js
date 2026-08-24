@@ -28,12 +28,12 @@
     document.querySelectorAll('[data-language-choice]').forEach(btn => btn.classList.toggle('active', btn.dataset.languageChoice===locale));
   };
   const control = () => {
-    const mount = document.querySelector('.header-actions');
+    const mount = document.querySelector('#headerLanguageSlot');
     if (!mount || mount.querySelector('.language-choice-wrap')) return;
     const wrap=document.createElement('div'); wrap.className='language-choice-wrap';
     wrap.innerHTML='<button type="button" class="language-choice" data-language-choice="bn">বাংলা</button><button type="button" class="language-choice" data-language-choice="en">EN</button>';
     wrap.addEventListener('click', event => { const target=event.target.closest('[data-language-choice]'); if(!target)return; locale=target.dataset.languageChoice==='en'?'en':'bn'; localStorage.setItem(KEY,locale); location.reload(); });
-    mount.prepend(wrap);
+    mount.append(wrap);
   };
   const refresh = () => { control(); translate(document.body); };
   window.SPTLocale = { get:()=>locale, set: value => { locale=value==='en'?'en':'bn';localStorage.setItem(KEY,locale);location.reload(); }, translate };

@@ -39,11 +39,11 @@
     gate.querySelector('[data-entry="close"]')?.addEventListener('click', removeGate);
   };
   const addHeaderActions = () => {
-    const actions = document.querySelector('.header-actions');
+    const actions = document.querySelector('#headerModeSlot');
     if (!actions || actions.querySelector('[data-entry-mode]')) return;
     const button = document.createElement('button');
-    button.type = 'button'; button.className = 'profile-chip mode-switch'; button.dataset.entryMode = '1';
-    button.innerHTML = `<span>◌</span><div><strong>${entry() === 'online' ? 'অনলাইন শিক্ষক' : 'অফলাইন শিক্ষক'}</strong><small>মোড পরিবর্তন</small></div>`;
+    button.type = 'button'; button.className = 'overflow-menu-item mode-switch'; button.dataset.entryMode = '1';
+    button.innerHTML = `<span>◌</span><div><b>শিক্ষক মোড</b><small>${entry() === 'online' ? 'অনলাইন শিক্ষক' : 'অফলাইন শিক্ষক'} · পরিবর্তন করুন</small></div>`;
     button.onclick = () => showGate(true);
     actions.append(button);
   };
@@ -53,11 +53,11 @@
     window.addEventListener('appinstalled', () => { deferredPrompt = null; });
     window.addEventListener('spt-render', () => {
       addHeaderActions();
-      const actions = document.querySelector('.header-actions');
+      const actions = document.querySelector('#headerInstallSlot');
       if (!actions || actions.querySelector('[data-install-app]')) return;
       const install = document.createElement('button');
-      install.type = 'button'; install.className = 'profile-chip install-app'; install.dataset.installApp = '1';
-      install.innerHTML = '<span>↓</span><div><strong>অ্যাপ ইনস্টল</strong><small>হোম স্ক্রিনে রাখুন</small></div>';
+      install.type = 'button'; install.className = 'overflow-menu-item install-app'; install.dataset.installApp = '1';
+      install.innerHTML = '<span>↓</span><div><b>অ্যাপ ইনস্টল</b><small>হোম স্ক্রিনে রাখুন</small></div>';
       install.onclick = async () => {
         if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; install.remove(); }
         else alert('Chrome বা Edge মেনু খুলে “Install app” অথবা “Add to Home screen” বেছে নিন। ইনস্টল হলে ইন্টারনেট ছাড়া অ্যাপটি খুলবে।');
