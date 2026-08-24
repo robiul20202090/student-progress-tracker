@@ -3,6 +3,7 @@
   const MODE_KEY = 'spt-teacher-entry-mode-v1';
   const entry = () => localStorage.getItem(MODE_KEY) || '';
   const byId = id => document.getElementById(id);
+  const guardianInvitation = () => new URLSearchParams(location.search).has('guardianInvite');
   const removeGate = () => {
     byId('teacherEntryGate')?.remove();
     document.body.classList.remove('entry-gated');
@@ -18,6 +19,8 @@
     run();
   };
   const showGate = (forced = false) => {
+    // Guardian invitation links are anonymous, read-only portals; never place teacher onboarding over them.
+    if (guardianInvitation()) { removeGate(); return; }
     if (!forced && entry()) return;
     byId('teacherEntryGate')?.remove();
     document.body.classList.add('entry-gated');
