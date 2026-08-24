@@ -3,7 +3,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp, updateDoc, getDocs, query, where, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-const config = { apiKey: 'AIzaSyCt8yb3UuQEGn098pbfS2zCJeX-q7gqPlU', authDomain: 'student-progress-report-7ed9a.firebaseapp.com', projectId: 'student-progress-report-7ed9a', storageBucket: 'student-progress-report-7ed9a.firebasestorage.app', messagingSenderId: '170035343031', appId: '1:170035343031:web:259410f0dee1dad0536732' };
+const config = { apiKey: 'AIzaSyD7Qg8QLnIIhmSAyJUQUkDkgjvVH0nfXbo', authDomain: 'educational-progress--v3.firebaseapp.com', projectId: 'educational-progress--v3', storageBucket: 'educational-progress--v3.firebasestorage.app', messagingSenderId: '968211421497', appId: '1:968211421497:web:32e1665aeb6c09b09170e8' };
 const app = initializeApp(config);
 const auth = getAuth(app);
 const db = getFirestore(app);
