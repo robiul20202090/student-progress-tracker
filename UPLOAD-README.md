@@ -50,4 +50,4 @@ The simplified dashboard adds a visible `ব্যাকআপ ও ডেটা`
 
 ## If an Older Dashboard Is Still Visible
 
-The browser may still have the prior service-worker cache. Hard-refresh once. On mobile, close and reopen the tab after GitHub Pages finishes deploying. The corrected package uses dashboard cache version `student-progress-directory-v5-0-0` and workspace cache version `scholastic-ledger-workspace-v10` under `student-workspace/`. If the weekly table still contains a `মন্তব্য` text field rather than an `অবস্থা` button, the new package is not yet active.
+The browser may still have the prior service-worker cache. Hard-refresh once. On mobile, close and reopen the tab after GitHub Pages finishes deploying. The corrected package uses dashboard cache version `student-progress-directory-v5-0-0` and workspace cache version `scholastic-ledger-workspace-v5` under `student-workspace/`. If the weekly table still contains a `মন্তব্য` text field rather than an `অবস্থা` button, the new package is not yet active.
