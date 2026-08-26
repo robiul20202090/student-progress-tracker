@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scholastic-ledger-workspace-v13-guardian-cloud-repair';
+const CACHE_NAME = 'scholastic-ledger-workspace-v14-guardian-cloud-trust';
 const APP_SHELL = ['./', './index.html', './manifest.json', './brand-logo.png'];
 
 self.addEventListener('install', (event) => {
