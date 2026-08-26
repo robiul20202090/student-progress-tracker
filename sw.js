@@ -1,13 +1,13 @@
-const CACHE_NAME = 'student-progress-offline-v18-cloud-status-icon';
+const CACHE_NAME = 'student-progress-offline-v19-guardian-batch-avatars';
 const ROOT = './';
 const APP_SHELL = [
   ROOT, './index.html', './manifest.json?v=mobile-final-2', './brand-logo.png', './pwa-icon-192-v2.png', './pwa-icon-512-v2.png', './pwa-icon-maskable-512-v2.png',
-  './styles/approved.css', './styles/batch-workspace.css', './styles/batch-correction.css', './styles/avatar-correction.css', './styles/form-correction.css', './styles/online-guardian.css?v=guardian-v3', './styles/contact-footer.css?v=mobile-final-2', './styles/mobile-header-correction.css?v=cloud-status-icon-1',
-  './scripts/entry-pwa.js?v=guardian-invite-fix-1', './scripts/dashboard-v5.js?v=mobile-final-2', './scripts/backup-wire.js', './scripts/modal-close-fix.js', './scripts/batch-workspace.js?v=batch-test-11', './scripts/locale.js?v=mobile-final-2', './scripts/online-firebase.js?v=cloud-status-icon-1', './assets/avatars/catalog.js?v=2',
+  './styles/approved.css', './styles/batch-workspace.css?v=batch-production-14', './styles/batch-correction.css', './styles/avatar-correction.css', './styles/form-correction.css', './styles/online-guardian.css?v=guardian-v3', './styles/guardian-donut-fix.css?v=guardian-production-1', './styles/contact-footer.css?v=mobile-final-2', './styles/mobile-header-correction.css?v=cloud-status-icon-1',
+  './scripts/entry-pwa.js?v=guardian-invite-fix-1', './scripts/dashboard-v5.js?v=mobile-final-2', './scripts/backup-wire.js', './scripts/modal-close-fix.js', './scripts/batch-workspace.js?v=batch-production-14', './scripts/locale.js?v=locale-production-3', './scripts/online-firebase.js?v=guardian-production-5', './assets/avatars/catalog.js?v=avatar-catalog-3',
   './student-workspace/index.html', './student-workspace/manifest.json', './student-workspace/brand-logo.png', './student-workspace/icon.svg', './student-workspace/workspace-i18n.js', './student-workspace/assets/index-CUv9GUcr.js', './student-workspace/assets/index-D_Dn3Xft.css'
 ].concat(
-  Array.from({ length: 23 }, (_, index) => `./assets/avatars/male-${String(index + 1).padStart(2, '0')}.webp`),
-  Array.from({ length: 26 }, (_, index) => `./assets/avatars/female-${String(index + 1).padStart(2, '0')}.webp`)
+  Array.from({ length: 33 }, (_, index) => `./assets/avatars/male-${String(index + 1).padStart(2, '0')}.webp`),
+  Array.from({ length: 31 }, (_, index) => `./assets/avatars/female-${String(index + 1).padStart(2, '0')}.webp`)
 );
 
 self.addEventListener('install', event => {
