@@ -1,0 +1,13 @@
+.guardian-progress-overall{margin:12px 0 16px;padding:17px;border:1px solid #b9d7cf;border-radius:16px;background:#f4fbf7}
+.guardian-subject-donuts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.guardian-donut-card{display:flex;align-items:center;gap:13px;padding:14px;border:1px solid #dce8e3;border-radius:15px;background:#fff}
+.guardian-donut-card.overall{justify-content:center;background:linear-gradient(130deg,#f8fffb,#eef7f4)}
+.guardian-donut-card h3{margin:0 0 4px;color:#183e3e;font-size:15px}
+.guardian-donut-card p{margin:0;color:#5f7772;font-size:12px}
+.guardian-donut{position:relative;display:grid;place-items:center;flex:0 0 94px;width:94px;height:94px;border-radius:50%;background:conic-gradient(var(--chart-color) 0deg var(--completion),#e5eee9 var(--completion) 360deg)}
+.guardian-donut::after{content:"";position:absolute;inset:13px;border-radius:50%;background:#fff}
+.guardian-donut strong{position:relative;z-index:1;color:#183e3e;font-size:16px}
+.guardian-donut-card.overall .guardian-donut{width:122px;height:122px;flex-basis:122px}
+.guardian-donut-card.overall .guardian-donut::after{inset:17px}
+.guardian-donut-card.overall .guardian-donut strong{font-size:21px}
+@media(max-width:640px){.guardian-subject-donuts{grid-template-columns:1fr}.guardian-donut-card.overall{justify-content:flex-start}}
