@@ -1,9 +1,9 @@
-const CACHE_NAME = 'student-progress-offline-v21-batch-time-repair';
+const CACHE_NAME = 'student-progress-offline-v22-batch-clock-registration-repair';
 const ROOT = './';
 const APP_SHELL = [
   ROOT, './index.html', './manifest.json?v=mobile-final-2', './brand-logo.png', './pwa-icon-192-v2.png', './pwa-icon-512-v2.png', './pwa-icon-maskable-512-v2.png',
-  './styles/approved.css', './styles/batch-workspace.css?v=batch-production-15', './styles/batch-correction.css', './styles/avatar-correction.css', './styles/form-correction.css', './styles/online-guardian.css?v=guardian-v3', './styles/guardian-donut-fix.css?v=guardian-production-1', './styles/contact-footer.css?v=mobile-final-2', './styles/mobile-header-correction.css?v=cloud-status-icon-1',
-  './scripts/entry-pwa.js?v=guardian-invite-fix-1', './scripts/dashboard-v5.js?v=guardian-cloud-repair-1', './scripts/backup-wire.js', './scripts/modal-close-fix.js', './scripts/batch-workspace.js?v=batch-production-15', './scripts/locale.js?v=locale-production-3', './scripts/online-firebase.js?v=guardian-cloud-repair-1', './assets/avatars/catalog.js?v=avatar-catalog-3',
+  './styles/approved.css', './styles/batch-workspace.css?v=batch-production-16', './styles/batch-correction.css', './styles/avatar-correction.css', './styles/form-correction.css', './styles/online-guardian.css?v=guardian-v3', './styles/guardian-donut-fix.css?v=guardian-production-1', './styles/contact-footer.css?v=mobile-final-2', './styles/mobile-header-correction.css?v=cloud-status-icon-1',
+  './scripts/entry-pwa.js?v=guardian-invite-fix-1', './scripts/dashboard-v5.js?v=guardian-cloud-repair-1', './scripts/backup-wire.js', './scripts/modal-close-fix.js', './scripts/batch-workspace.js?v=batch-production-16', './scripts/locale.js?v=locale-production-3', './scripts/online-firebase.js?v=guardian-cloud-repair-1', './assets/avatars/catalog.js?v=avatar-catalog-3',
   './student-workspace/index.html', './student-workspace/manifest.json', './student-workspace/brand-logo.png', './student-workspace/icon.svg', './student-workspace/workspace-i18n.js', './student-workspace/assets/index-DyHnWEKN.js', './student-workspace/assets/index-D_Dn3Xft.css'
 ].concat(
   Array.from({ length: 33 }, (_, index) => `./assets/avatars/male-${String(index + 1).padStart(2, '0')}.webp`),
