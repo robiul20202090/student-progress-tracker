@@ -9,13 +9,14 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const ACCESS_INDEX_KEY = 'spt-guardian-access-index-v2';
 const PORTAL_LANGUAGE_KEY = 'spt-guardian-locale-v2';
+const GUARDIAN_LAST_INVITE_KEY = 'spt-guardian-last-invite-v1';
+const SYNC_DIRTY_KEY = 'spt-cloud-local-dirty-v1';
+const SYNC_FINGERPRINT_KEY = 'spt-cloud-last-fingerprint-v1';
 let user = null;
 let syncTimer = null;
 let stopTeacherSnapshot = null;
 let stopGuardianRequest = null;
 let cloudState = { kind: 'offline', message: '', errorCode: '' };
-let guardianInstallPrompt = null;
-window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); guardianInstallPrompt = event; });
 
 const safe = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 const displayBuiltIn = (value, lang) => { const raw = String(value ?? ''); if (lang !== 'en') return raw; return ({ 'বাংলা':'Bangla','বাংলা ১ম পত্র':'Bangla Paper 1','বাংলা ২য় পত্র':'Bangla Paper 2','ইংরেজি':'English','ইংরেজি ১ম পত্র':'English Paper 1','ইংরেজি ২য় পত্র':'English Paper 2','গণিত':'Mathematics','উচ্চতর গণিত':'Higher Mathematics','বিজ্ঞান':'Science','পদার্থবিজ্ঞান':'Physics','রসায়ন':'Chemistry','জীববিজ্ঞান':'Biology','তথ্য ও যোগাযোগ প্রযুক্তি':'Information & Communication Technology','কম্পিউটার':'Computer','বাংলাদেশ ও বিশ্বপরিচয়':'Bangladesh & Global Studies','ইতিহাস':'History','ভূগোল':'Geography','অর্থনীতি':'Economics','হিসাববিজ্ঞান':'Accounting','ব্যবসায় উদ্যোগ':'Business Entrepreneurship','কৃষিশিক্ষা':'Agricultural Studies','গার্হস্থ্য বিজ্ঞান':'Home Science','চারু ও কারুকলা':'Arts & Crafts','শারীরিক শিক্ষা':'Physical Education','আরবি ১ম পত্র':'Arabic Paper 1','আরবি ২য় পত্র':'Arabic Paper 2','কুরআন মাজীদ ও তাজভীদ':'Quran Majid & Tajweed','ইসলাম ও নৈতিক শিক্ষা':'Islam & Moral Education','হিন্দুধর্ম ও নৈতিক শিক্ষা':'Hindu Religion & Moral Education','বৌদ্ধধর্ম ও নৈতিক শিক্ষা':'Buddhist Religion & Moral Education','খ্রিস্টধর্ম ও নৈতিক শিক্ষা':'Christian Religion & Moral Education','পুনরালোচনা':'Revision','শনিবার':'Saturday','রবিবার':'Sunday','সোমবার':'Monday','মঙ্গলবার':'Tuesday','বুধবার':'Wednesday','বৃহস্পতিবার':'Thursday','শুক্রবার':'Friday','জানুয়ারি':'January','ফেব্রুয়ারি':'February','মার্চ':'March','এপ্রিল':'April','মে':'May','জুন':'June','জুলাই':'July','আগস্ট':'August','সেপ্টেম্বর':'September','অক্টোবর':'October','নভেম্বর':'November','ডিসেম্বর':'December' })[raw] || raw; };
@@ -103,7 +104,7 @@ function publicSnapshot(studentId) {
   };
 }
 
-function contactFooter(lang = portalLocale()) { return `<footer class="guardian-contact-note">${lang === 'en' ? 'The latest information is shown from the teacher’s saved online update.' : 'সর্বশেষ তথ্য শিক্ষকের সংরক্ষিত অনলাইন আপডেট থেকে দেখানো হচ্ছে。'} · <a href="privacy.html" target="_blank" rel="noopener">${lang === 'en' ? 'Privacy notice' : 'গোপনীয়তা নোটিশ'}</a></footer>`; }
+function contactFooter(lang = portalLocale()) { return `<footer class="guardian-contact-note">${lang === 'en' ? 'The latest information is shown from the teacher’s saved online update.' : 'সর্বশেষ তথ্য শিক্ষকের সংরক্ষিত অনলাইন আপডেট থেকে দেখানো হচ্ছে।'}</footer>`; }
 function nodeSummary(node) {
   const child = (node.children || []).reduce((sum, item) => { const next = nodeSummary(item); return { done: sum.done + next.done, total: sum.total + next.total }; }, { done: 0, total: 0 });
   const boxes = node.boxes || [];
@@ -209,15 +210,15 @@ function renderGuardianWorkspace(token, record) {
   draw();
 }
 async function guardianPortal(inviteId) {
+  localStorage.setItem(GUARDIAN_LAST_INVITE_KEY, inviteId);
   const direct = accessIndex().find(item => item.inviteId === inviteId);
   if (direct) { try { const access = await getDoc(doc(db, 'guardianAccess', direct.token)); if (access.exists() && access.data()?.inviteId === inviteId) return renderGuardianWorkspace(direct.token, access.data()); } catch (_) {} }
   const shell = portalShell(), lang = portalLocale();
-  shell.innerHTML = `<section class="guardian-portal-card"><header class="guardian-portal-top"><div><p class="portal-kicker">${t(lang, 'room')}</p><h1>${lang === 'en' ? 'Student guardian access' : 'শিক্ষার্থী অভিভাবক প্রবেশ'}</h1></div><div class="language-choice-wrap"><button class="language-choice ${lang === 'bn' ? 'active' : ''}" data-portal-language="bn">বাংলা</button><button class="language-choice ${lang === 'en' ? 'active' : ''}" data-portal-language="en">EN</button></div></header><div class="guardian-install-note"><button class="mini-add" data-guardian-install>${lang === 'en' ? 'Install this guardian app' : 'এই অভিভাবক অ্যাপ ইনস্টল করুন'}</button><small>${lang === 'en' ? 'Use the same Chrome/browser that received teacher approval.' : 'শিক্ষকের অনুমোদন পাওয়া একই Chrome/ব্রাউজার ব্যবহার করুন।'}</small></div><div id="guardianPortalContent"></div>${contactFooter()}</section>`;
+  shell.innerHTML = `<section class="guardian-portal-card"><header class="guardian-portal-top"><div><p class="portal-kicker">${t(lang, 'room')}</p><h1>${lang === 'en' ? 'Student guardian access' : 'শিক্ষার্থী অভিভাবক প্রবেশ'}</h1></div><div class="language-choice-wrap"><button class="language-choice ${lang === 'bn' ? 'active' : ''}" data-portal-language="bn">বাংলা</button><button class="language-choice ${lang === 'en' ? 'active' : ''}" data-portal-language="en">EN</button></div></header><div id="guardianPortalContent"></div>${contactFooter()}</section>`;
   shell.querySelectorAll('[data-portal-language]').forEach(button => button.onclick = () => { setPortalLocale(button.dataset.portalLanguage); guardianPortal(inviteId); });
-  shell.querySelector('[data-guardian-install]').onclick = async () => { if (guardianInstallPrompt) { guardianInstallPrompt.prompt(); await guardianInstallPrompt.userChoice; guardianInstallPrompt = null; } else alert(lang === 'en' ? 'Open the Chrome menu, then choose “Install app” or “Add to Home screen”. Use the same Chrome/browser that received teacher approval.' : 'Chrome মেনু খুলে “Install app” বা “Add to Home screen” বেছে নিন। শিক্ষকের অনুমোদন পাওয়া একই Chrome/ব্রাউজার ব্যবহার করুন।'); };
   const outlet = shell.querySelector('#guardianPortalContent'); let invite;
   try { const snap = await getDoc(doc(db, 'guardianInvites', inviteId)); invite = snap.exists() ? snap.data() : null; } catch (error) { console.error(error); }
-  if (!invite?.active) { outlet.innerHTML = `<p class="guardian-warning">${t(lang, 'noAccess')}</p>`; return; }
+  if (!invite?.active) { localStorage.removeItem(GUARDIAN_LAST_INVITE_KEY); outlet.innerHTML = `<p class="guardian-warning">${t(lang, 'noAccess')}</p>`; return; }
   const requestKey = `spt-guardian-request-${inviteId}`;
   const requestId = localStorage.getItem(requestKey);
   if (!requestId) {
@@ -274,41 +275,87 @@ function renderCloudControl() { const mount = document.querySelector('#headerClo
 function refreshGuardianRoomButtons() { const ready = Boolean(user && cloudState.kind === 'ok'); document.querySelectorAll('[data-guardian-room]').forEach(button => { button.disabled = !ready; button.textContent = ready ? t(teacherLocale(), 'room') : 'ক্লাউড সিঙ্ক প্রয়োজন'; button.title = ready ? '' : 'আগে Google সাইন-ইন ও ক্লাউড সিঙ্ক সম্পন্ন করুন'; }); }
 function setStatus(kind, text = '', errorCode = '') { cloudState = { kind, message: text, errorCode }; document.querySelectorAll('.online-status').forEach(element => { element.className = `online-status ${kind}`; element.textContent = text || cloudCopy().title; }); renderCloudControl(); refreshGuardianRoomButtons(); }
 function syncError(error) { const code = String(error?.code || '').replace(/^firestore\//, ''); return code === 'permission-denied' ? 'permission-denied' : code; }
-async function push() { if (!user || !dashboard()) return; const payload = full(); if (!payload) return; try { await setDoc(doc(db, 'teachers', user.uid, 'snapshots', 'current'), { ownerUid: user.uid, savedAt: new Date().toISOString(), payload }); await pushGuardianSnapshots(); setStatus('ok', t(teacherLocale(), 'synced')); } catch (error) { console.error(error); const code = syncError(error); setStatus('err', t(teacherLocale(), 'failed'), code); toast(code === 'permission-denied' ? (teacherLocale() === 'en' ? 'Cloud permission was denied. Local data is still safe on this device.' : 'ক্লাউড অনুমতি পাওয়া যায়নি। স্থানীয় তথ্য এই ডিভাইসে নিরাপদে আছে।') : (teacherLocale() === 'en' ? 'Cloud sync failed. Local data is still available.' : 'ক্লাউড সিঙ্ক হয়নি। স্থানীয় তথ্য ব্যবহার করা যাবে।'), 'error'); } }
-function queue() { if (!user) return; clearTimeout(syncTimer); setStatus('wait', t(teacherLocale(), 'saving')); syncTimer = setTimeout(push, 1200); }
-const hasTeacherData = payload => Boolean((payload?.dashboard?.students || []).length || (payload?.dashboard?.batches || []).length || Object.keys(payload?.workspaces || {}).length);
-const stableJson = value => {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-  if (value && typeof value === 'object') return `{${Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
-  return JSON.stringify(value);
+const stableData = value => {
+  if (Array.isArray(value)) return value.map(stableData);
+  if (value && typeof value === 'object') return Object.keys(value).sort().reduce((out, key) => { if (key !== 'exportedAt') out[key] = stableData(value[key]); return out; }, {});
+  return value;
 };
-const fingerprint = payload => { const text = stableJson({ dashboard: payload?.dashboard || {}, workspaces: payload?.workspaces || {} }); let hash = 2166136261; for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619); return `${hash >>> 0}:${text.length}`; };
-const conflictKey = () => `spt-cloud-conflict-resolution-v1-${user?.uid || 'guest'}`;
-async function syncOnLogin() { if (!user) return; const reference = doc(db, 'teachers', user.uid, 'snapshots', 'current'); setStatus('wait', t(teacherLocale(), 'saving')); try { const remoteSnap = await getDoc(reference), local = full(); if (remoteSnap.exists() && remoteSnap.data()?.payload) { const remote = remoteSnap.data().payload; if (!hasTeacherData(local) && hasTeacherData(remote)) { dashboard().setState(remote.dashboard); Object.entries(remote.workspaces || {}).forEach(([id, data]) => localStorage.setItem(workspaceKey(id), JSON.stringify(data))); toast(teacherLocale() === 'en' ? 'Cloud backup restored to this browser.' : 'ক্লাউড ব্যাকআপ এই ব্রাউজারে পুনরুদ্ধার হয়েছে।'); } else if (hasTeacherData(local) && hasTeacherData(remote) && fingerprint(local) !== fingerprint(remote)) { const pair = `${fingerprint(local)}|${fingerprint(remote)}`; if (localStorage.getItem(conflictKey()) !== pair) { const useCloud = confirm(teacherLocale() === 'en' ? 'A cloud copy and local data both exist. Press OK to use cloud; Cancel keeps local data without replacing the cloud copy.' : 'ক্লাউড কপি ও স্থানীয় তথ্য দুটিই আছে। ক্লাউড কপি নিতে ঠিক আছে চাপুন; বাতিল চাপলে স্থানীয় তথ্য থাকবে, কিন্তু ক্লাউড কপি বদলাবে না।'); localStorage.setItem(conflictKey(), pair); if (useCloud) { dashboard().setState(remote.dashboard); Object.entries(remote.workspaces || {}).forEach(([id, data]) => localStorage.setItem(workspaceKey(id), JSON.stringify(data))); } } } else if (!hasTeacherData(remote)) await push(); } else if (hasTeacherData(local)) await push(); stopTeacherSnapshot?.(); stopTeacherSnapshot = onSnapshot(reference, () => {}, error => { console.error(error); setStatus('err', t(teacherLocale(), 'failed'), syncError(error)); }); if (cloudState.kind !== 'err') setStatus('ok', t(teacherLocale(), 'synced')); } catch (error) { console.error(error); const code = syncError(error); setStatus('err', t(teacherLocale(), 'failed'), code); toast(code === 'permission-denied' ? (teacherLocale() === 'en' ? 'Firebase denied this account’s cloud access. Check the published Firestore rules and project.' : 'Firebase এই অ্যাকাউন্টের ক্লাউড অনুমতি দেয়নি। Firestore Rules ও প্রকল্প যাচাই করুন。') : (teacherLocale() === 'en' ? 'Cloud sync could not start.' : 'ক্লাউড সিঙ্ক শুরু করা যায়নি।'), 'error'); } }
-async function signIn() { try { setStatus('wait', t(teacherLocale(), 'saving')); await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { console.error(error); setStatus('err', t(teacherLocale(), 'failed'), syncError(error)); toast(teacherLocale() === 'en' ? 'Google sign-in could not be completed.' : 'Google সাইন-ইন সম্পন্ন করা যায়নি।', 'error'); } }
-async function createRoom(studentId) {
-  if (!user) return toast(teacherLocale() === 'en' ? 'Sign in and complete cloud sync first.' : 'আগে Google সাইন-ইন ও ক্লাউড সিঙ্ক সম্পন্ন করুন।', 'error');
-  if (cloudState.kind !== 'ok') return toast(teacherLocale() === 'en' ? 'Guardian room will be available after cloud sync succeeds.' : 'ক্লাউড সিঙ্ক সফল হলে অভিভাবক রুম ব্যবহার করা যাবে।', 'error');
-  const state = dashboard().getState(), student = state.students.find(item => item.id === studentId); if (!student) return;
-  if (student.room?.inviteId) { const url = `${location.origin}${location.pathname}?guardianInvite=${encodeURIComponent(student.room.inviteId)}`; prompt(teacherLocale() === 'en' ? 'Share this guardian invitation link:' : 'এই ব্যক্তিগত অভিভাবক আমন্ত্রণ লিংকটি শেয়ার করুন:', url); return; }
-  const inviteId = randomId('i'), code = String(Math.floor(100000 + Math.random() * 900000)); await setDoc(doc(db, 'guardianInvites', inviteId), { ownerUid: user.uid, studentId, active: true, createdAt: serverTimestamp(), code }); student.room = { inviteId, code, active: true, createdAt: Date.now() }; dashboard().setState(state); await push(); prompt(teacherLocale() === 'en' ? 'Share this guardian invitation link:' : 'এই ব্যক্তিগত অভিভাবক আমন্ত্রণ লিংকটি শেয়ার করুন:', `${location.origin}${location.pathname}?guardianInvite=${encodeURIComponent(inviteId)}`);
-}
-function offlineGuardianHtml(snapshot) {
-  const lang = teacherLocale(), student = snapshot.student || {}, months = snapshot.workspace?.months || [];
-  const month = months.find(item => item.id === snapshot.workspace?.activeMonthId) || months[months.length - 1];
-  const weekKey = month?.weeks?.[month.weeks.length - 1] || '';
-  const weekIndex = Math.max(0, month?.weeks?.indexOf(weekKey) ?? 0);
-  const weekAlerts = (snapshot.updates || []).filter(update => update.monthId === month?.id && update.weekKey === weekKey);
-  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safe(student.name)} — ${lang === 'en' ? 'Guardian report' : 'অভিভাবক প্রতিবেদন'}</title><style>body{margin:0;background:#f7f3ea;color:#183e3e;font-family:Arial,'Hind Siliguri',sans-serif}.page{max-width:920px;margin:auto;padding:16px}.hero,.card{background:#fff;border:1px solid #dce8e3;border-radius:16px;padding:17px}.hero{background:linear-gradient(120deg,#fffdf8,#eef7f2)}.eyebrow{margin:0;color:#0f5b5a;font-size:12px;font-weight:800}.hero h1{margin:4px 0;font-family:Georgia,'Noto Serif Bengali',serif}.hero p{margin:4px 0;color:#58716d}.notice{margin:12px 0;padding:10px 12px;border-left:4px solid #0f5b5a;border-radius:8px;background:#eef7f4;font-size:13px;line-height:1.5}.privacy{border-left-color:#a66b16;background:#fff6df}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}.tabs button{border:1px solid #bcd4ce;border-radius:999px;background:#fff;color:#0f5b5a;padding:8px 10px;font-weight:800}.tabs button.active{background:#0f5b5a;color:#fff}.panel{display:none}.panel.active{display:block}.guardian-table-scroll{overflow:auto}.guardian-week-table,table{width:100%;min-width:700px;border-collapse:collapse;font-size:13px}.guardian-week-table th,.guardian-week-table td,th,td{padding:8px;border-bottom:1px solid #e8eee9;text-align:left;vertical-align:top}.guardian-week-table th,th{color:#0f5b5a}.guardian-score{display:inline-block;padding:4px 6px;border-radius:7px;font-size:11px;font-weight:800}.tone-red{background:#fbe0dc;color:#a1322d}.tone-amber{background:#fff0cf;color:#946615}.tone-green{background:#e5f4e7;color:#25734a}.guardian-routine-card,.guardian-subject,.guardian-topic,.guardian-check-node,.guardian-sheet-card,.guardian-progress-card{margin:10px 0;padding:13px;border:1px solid #dce8e3;border-radius:13px;background:#fff}.guardian-routine-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}.guardian-routine-grid div{padding:9px;background:#f0f7f4;border-radius:9px}.guardian-routine-grid b,.guardian-routine-grid span{display:block}.guardian-routine-grid span{margin-top:3px;color:#58716d;font-size:13px}.guardian-subject>summary,.guardian-topic>summary,.guardian-check-node>summary,.guardian-sheet-card>summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;font-weight:800}.guardian-check-node{margin-left:14px}.guardian-box-row{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0}.guardian-box-row i{display:grid;place-items:center;width:30px;height:30px;border:1px solid #c8d7cc;border-radius:7px;color:#668078;font-style:normal;font-size:12px}.guardian-box-row i.done{background:#e6f5e7;border-color:#8dbb91;color:#187245;font-weight:900}.guardian-progress-card>div{display:flex;justify-content:space-between;gap:9px}.guardian-progress-card i{display:block;height:11px;margin-top:9px;border-radius:999px;background:#e7efea;overflow:hidden}.guardian-progress-card b{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#c94a43,#d59a28,#328b5a)}.guardian-alert{margin:10px 0;padding:13px;border:1px solid #e8aaaa;border-left:5px solid #bd3d3d;border-radius:12px;background:#fff5f4}.guardian-alert p{margin:0;color:#8e3934;font-size:12px;font-weight:800}.guardian-alert h3{margin:3px 0 8px;color:#7e2b2b;font-size:16px}.guardian-alert-tags{display:flex;gap:5px;flex-wrap:wrap}.guardian-alert-tags span{padding:4px 7px;border-radius:999px;background:#f8d8d4;color:#922f2c;font-size:12px;font-weight:700}.guardian-alert-note{margin-top:8px!important;color:#6f504d!important;font-weight:400!important}.guardian-empty{color:#58716d;padding:16px}.snapshot{margin-top:14px;color:#607a75;font-size:12px;text-align:center}@media(max-width:600px){.page{padding:10px}.hero,.card{padding:14px}.tabs{position:sticky;top:0;background:#f7f3ea;padding:8px 0;z-index:2}.tabs button{font-size:12px;padding:7px 9px}}</style></head><body><main class="page"><header class="hero"><p class="eyebrow">${t(lang, 'viewOnly')}</p><h1>${safe(student.name)}</h1><p>${safe([student.school, student.grade, student.group].filter(Boolean).join(' · '))}</p><p class="notice privacy">${lang === 'en' ? 'This is a teacher-created read-only workspace snapshot. It cannot be edited, added to, or reduced. Please do not forward it without permission.' : 'এটি শিক্ষকের কর্মক্ষেত্র থেকে তৈরি শুধু-দেখার স্ন্যাপশট। এতে কোনো তথ্য যোগ, পরিবর্তন বা মুছা যাবে না। অনুমতি ছাড়া অন্য কারও কাছে পাঠাবেন না।'}</p><p class="notice">${lang === 'en' ? `Report week: ${safe(month?.name || '—')} · Week ${weekIndex + 1}. Prepared: ${safe(dateText(snapshot.updatedAt, lang))}. Later teacher changes do not automatically update this file.` : `রিপোর্টের সপ্তাহ: ${safe(month?.name || '—')} · সপ্তাহ ${weekIndex + 1}। শিক্ষকের কর্মক্ষেত্র থেকে প্রস্তুত: ${safe(dateText(snapshot.updatedAt, lang))}। পরবর্তী পরিবর্তন এতে স্বয়ংক্রিয়ভাবে আসবে না।`}</p></header>${weekAlerts.length ? `<section class="card"><p class="eyebrow">${t(lang, 'updates')}</p>${weekAlerts.map(update => `<article class="guardian-alert"><p>${safe(update.day)} · ${safe(update.subject)}</p><h3>${t(lang, 'concern')}</h3><div class="guardian-alert-tags">${concernLabels(update.tags, lang).map(label => `<span>${safe(label)}</span>`).join('')}</div>${update.note ? `<p class="guardian-alert-note">${safe(update.note)}</p>` : ''}</article>`).join('')}</section>` : ''}<nav class="tabs"><button class="active" data-tab="weekly">${t(lang, 'weekly')}</button><button data-tab="routine">${t(lang, 'routine')}</button><button data-tab="checklist">${t(lang, 'checklist')}</button><button data-tab="progress">${t(lang, 'progress')}</button><button data-tab="exams">${t(lang, 'exams')}</button></nav><section class="panel active" data-panel="weekly">${weeklyHtml(snapshot, month?.id, weekKey, lang)}</section><section class="panel" data-panel="routine">${routineHtml(snapshot, lang)}</section><section class="panel" data-panel="checklist">${checklistHtml(snapshot, lang)}</section><section class="panel" data-panel="progress">${progressHtml(snapshot, lang)}</section><section class="panel" data-panel="exams">${examsHtml(snapshot, lang)}</section><p class="snapshot">${lang === 'en' ? 'Use the section buttons and expandable checklist headings to review this fixed report.' : 'বিভাগের বোতাম ও চেকলিস্টের বিস্তার/সংকোচন ব্যবহার করে এই স্থির প্রতিবেদন দেখুন।'}</p></main><script>document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('[data-panel]').forEach(x=>x.classList.toggle('active',x.dataset.panel===b.dataset.tab))}))<\/script></body></html>`;
-}
-function downloadGuardian(studentId) { const snapshot = publicSnapshot(studentId); if (!snapshot) return toast(teacherLocale() === 'en' ? 'No local workspace data is available for this student.' : 'এই শিক্ষার্থীর স্থানীয় কর্মক্ষেত্রের তথ্য পাওয়া যায়নি।', 'error'); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([offlineGuardianHtml(snapshot)], { type: 'text/html' })); link.download = `guardian-report-${studentId}-${new Date().toISOString().slice(0, 10)}.html`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(link.href), 1000); }
-function decorate() {
-  renderCloudControl();
-  document.querySelectorAll('[data-action="open-student"]').forEach(card => { const id = card.dataset.id, footer = card.querySelector('footer'); if (footer && !footer.querySelector('[data-guardian-html]')) { const controls = document.createElement('div'); const roomReady = Boolean(user && cloudState.kind === 'ok'); controls.className = 'guardian-card-actions'; controls.innerHTML = `<button class="mini-add" data-guardian-html="${id}">${t(teacherLocale(), 'share')}</button><button class="mini-add" data-guardian-room="${id}" ${roomReady ? '' : 'disabled title="আগে Google সাইন-ইন ও ক্লাউড সিঙ্ক সম্পন্ন করুন"'}>${roomReady ? t(teacherLocale(), 'room') : 'ক্লাউড সিঙ্ক প্রয়োজন'}</button>`; footer.append(controls); } });
-  document.querySelectorAll('[data-guardian-html]').forEach(button => button.onclick = event => { event.stopPropagation(); downloadGuardian(button.dataset.guardianHtml); }); document.querySelectorAll('[data-guardian-room]').forEach(button => button.onclick = event => { event.stopPropagation(); createRoom(button.dataset.guardianRoom); });
-}
-
-onAuthStateChanged(auth, next => { user = next; if (!user) cloudState = { kind: 'offline', message: '', errorCode: '' }; setTimeout(() => { decorate(); if (user) syncOnLogin(); guardianManager(); }, 0); });
+const fingerprint = value => JSON.stringify(stableData(value || {}));
+const markLocalDirty = () => localStorage.setItem(SYNC_DIRTY_KEY, '1');
+const clearLocalDirty = () => localStorage.removeItem(SYNC_DIRTY_KEY);
+const localIsDirty = () => localStorage.getItem(SYNC_DIRTY_KEY) === '1';
+const downloadLocalBackup = () => {
+  const payload = full();
+  if (!payload) return false;
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+  link.download = `student-progress-local-before-cloud-replace-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  return true;
+};
+const applyCloudPayload = remote => {
+  dashboard().setState(remote.dashboard);
+  Object.entries(remote.workspaces || {}).forEach(([id, data]) => localStorage.setItem(workspaceKey(id), JSON.stringify(data)));
+  localStorage.setItem(SYNC_FINGERPRINT_KEY, fingerprint(remote));
+  clearLocalDirty();
+};
+async function push() { if (!user || !dashboard()) return; const payload = full(); if (!payload) return; try { await setDoc(doc(db, 'teachers', user.uid, 'snapshots', 'current'), { ownerUid: user.uid, savedAt: new Date().toISOString(), payload }); await pushGuardianSnapshots(); localStorage.setItem(SYNC_FINGERPRINT_KEY, fingerprint(payload)); clearLocalDirty(); setStatus('ok', t(teacherLocale(), 'synced')); } catch (error) { console.error(error); markLocalDirty(); const code = syncError(error); setStatus('err', t(teacherLocale(), 'failed'), code); toast(code === 'permission-denied' ? (teacherLocale() === 'en' ? 'Cloud permission was denied. Local data is still safe on this device.' : 'ক্লাউড অনুমতি পাওয়া যায়নি। স্থানীয় তথ্য এই ডিভাইসে নিরাপদে আছে।') : (teacherLocale() === 'en' ? 'Cloud sync failed. Local data is still available.' : 'ক্লাউড সিঙ্ক হয়নি। স্থানীয় তথ্য ব্যবহার করা যাবে।'), 'error'); } }
+function queue() { markLocalDirty(); if (!user) return; clearTimeout(syncTimer); setStatus('wait', t(teacherLocale(), 'saving')); syncTimer = setTimeout(push, 1200); }
+const hasTeacherData = payload => Boolean((payload?.dashboard?.students || []).length || (payload?.dashboard?.batches || []).length || Object.keys(payload?.workspaces || {}).length);
+async function syncOnLogin() {
+  if (!user) return;
+  const reference = doc(db, 'teachers', user.uid, 'snapshots', 'current');
+  setStatus('wait', t(teacherLocale(), 'saving'));
+  try {
+    const remoteSnap = await getDoc(reference);
+    const local = full();
+    const remote = remoteSnap.exists() ? remoteSnap.data()?.payload : null;
+    if (remote && hasTeacherData(remote) && local && hasTeacherData(local)) {
+      const localFingerprint = fingerprint(local);
+      const remoteFingerprint = fingerprint(remote);
+      if (localFingerprint === remoteFingerprint) {
+        localStorage.setItem(SYNC_FINGERPRINT_KEY, localFingerprint);
+        clearLocalDirty();
+      } else if (localIsDirty()) {
+        await push();
+      } else {
+        const useCloud = confirm(teacherLocale() === 'en'
+          ? 'New cloud data is available. Press OK only to replace this device data with the cloud copy. Cancel keeps this device data.'
+          : 'নতুন ক্লাউড তথ্য এসেছে। এই ডিভাইসের তথ্য ক্লাউড কপি দিয়ে বদলাতে শুধু ঠিক আছে চাপুন। বাতিল করলে এই ডিভাইসের তথ্য থাকবে।');
+        if (useCloud) {
+          downloadLocalBackup();
+          applyCloudPayload(remote);
+        }
+      }
+    } else if (remote && hasTeacherData(remote) && (!local || !hasTeacherData(local))) {
+      applyCloudPayload(remote);
+      toast(teacherLocale() === 'en' ? 'Cloud backup restored to this browser.' : 'ক্লাউড ব্যাকআপ এই ব্রাউজারে পুনরুদ্ধার হয়েছে।');
+    } else if ((!remote || !hasTeacherData(remote)) && local && hasTeacherData(local)) {
+      await push();
+    }
+    stopTeacherSnapshot?.();
+    stopTeacherSnapshot = onSnapshot(reference, () => {}, error => { console.error(error); setStatus('err', t(teacherLocale(), 'failed'), syncError(error)); });
+    if (cloudState.kind !== 'err') setStatus('ok', t(teacherLocale(), 'synced'));
+  } catch (error) {
+    console.error(error);
+    const code = syncError(error);
+    setStatus('err', t(teacherLocale(), 'failed'), code);
+    toast(code === 'permission-denied' ? (teacherLocale() === 'en' ? 'Firebase denied this account’s cloud access. Check the published Firestore rules and project.' : 'Firebase এই অ্যাকাউন্টের ক্লাউড অনুমতি দেয়নি। Firestore Rules ও প্রকল্প যাচাই করুন।') : (teacherLocale() === 'en' ? 'Cloud sync could not start.' : 'ক্লাউড সিঙ্ক শুরু করা যায়নি।'), 'error');
+  }
+}onAuthStateChanged(auth, next => { user = next; if (!user) cloudState = { kind: 'offline', message: '', errorCode: '' }; setTimeout(() => { decorate(); if (user) syncOnLogin(); else resumeGuardian(); guardianManager(); }, 0); });
 window.SPTOnline = { queue, signIn, downloadGuardian, createRoom, approveGuardianRequest, rejectGuardianRequest, revokeGuardianAccess, endGuardianRoom };
 window.addEventListener('spt-render', () => setTimeout(() => { decorate(); guardianManager(); }, 0));
-const inviteId = new URLSearchParams(location.search).get('guardianInvite'); if (inviteId) guardianPortal(inviteId);
+window.addEventListener('spt-workspace-saved', () => queue());
+const inviteId = new URLSearchParams(location.search).get('guardianInvite');
+const resumeGuardian = async () => {
+  if (user || inviteId) return;
+  const rememberedInvite = localStorage.getItem(GUARDIAN_LAST_INVITE_KEY);
+  if (rememberedInvite) return guardianPortal(rememberedInvite);
+  const access = await loadDeviceAccess();
+  if (access.length === 1) renderGuardianWorkspace(access[0].token, access[0].record);
+  else if (access.length > 1) renderGuardianHub();
+};
+if (inviteId) guardianPortal(inviteId);
