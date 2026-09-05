@@ -210,10 +210,11 @@ function renderGuardianWorkspace(token, record) {
   draw();
 }
 async function guardianPortal(inviteId) {
+  const shell = portalShell();
   localStorage.setItem(GUARDIAN_LAST_INVITE_KEY, inviteId);
   const direct = accessIndex().find(item => item.inviteId === inviteId);
   if (direct) { try { const access = await getDoc(doc(db, 'guardianAccess', direct.token)); if (access.exists() && access.data()?.inviteId === inviteId) return renderGuardianWorkspace(direct.token, access.data()); } catch (_) {} }
-  const shell = portalShell(), lang = portalLocale();
+  const lang = portalLocale();
   shell.innerHTML = `<section class="guardian-portal-card"><header class="guardian-portal-top"><div><p class="portal-kicker">${t(lang, 'room')}</p><h1>${lang === 'en' ? 'Student guardian access' : 'শিক্ষার্থী অভিভাবক প্রবেশ'}</h1></div><div class="language-choice-wrap"><button class="language-choice ${lang === 'bn' ? 'active' : ''}" data-portal-language="bn">বাংলা</button><button class="language-choice ${lang === 'en' ? 'active' : ''}" data-portal-language="en">EN</button></div></header><div id="guardianPortalContent"></div>${contactFooter()}</section>`;
   shell.querySelectorAll('[data-portal-language]').forEach(button => button.onclick = () => { setPortalLocale(button.dataset.portalLanguage); guardianPortal(inviteId); });
   const outlet = shell.querySelector('#guardianPortalContent'); let invite;
@@ -273,6 +274,7 @@ async function guardianManager() {
 function cloudCopy() { const lang = teacherLocale(), email = user?.email || ''; if (!user) return { title: lang === 'en' ? 'Cloud not connected' : 'ক্লাউড সংযুক্ত নয়', detail: lang === 'en' ? 'Sign in with Google' : 'Google দিয়ে সাইন-ইন' }; if (cloudState.kind === 'ok') return { title: lang === 'en' ? 'Cloud synced' : 'ক্লাউড সিঙ্ক হয়েছে', detail: email }; if (cloudState.kind === 'wait') return { title: lang === 'en' ? 'Saving to cloud…' : 'ক্লাউডে সংরক্ষণ হচ্ছে…', detail: email }; if (cloudState.errorCode === 'permission-denied') return { title: lang === 'en' ? 'Cloud permission problem' : 'ক্লাউড অনুমতি সমস্যা', detail: email || (lang === 'en' ? 'Local data remains available' : 'স্থানীয় তথ্য ব্যবহার করা যাবে') }; return { title: lang === 'en' ? 'Cloud sync failed' : 'ক্লাউড সিঙ্ক হয়নি', detail: email || (lang === 'en' ? 'Local data remains available' : 'স্থানীয় তথ্য ব্যবহার করা যাবে') }; }
 function renderCloudControl() { const mount = document.querySelector('#headerCloudSlot'); if (!mount) return; const copy = cloudCopy(), kind = cloudState.kind, icon = `<span class="cloud-icon-status ${kind}" aria-hidden="true"><svg viewBox="0 0 48 36" focusable="false"><path d="M14.5 29.5h20.3a8.2 8.2 0 0 0 1.2-16.3A12.5 12.5 0 0 0 12.2 16a6.8 6.8 0 0 0 2.3 13.5Z"/></svg><i class="cloud-dot"></i></span>`; mount.innerHTML = `<button class="profile-chip cloud-status-button cloud-status-${kind}" type="button" data-online-auth title="${safe(copy.title)}" aria-label="${safe(`${copy.title}. ${copy.detail}`)}">${icon}<div class="cloud-status-copy"><strong>${safe(copy.title)}</strong><small class="cloud-email">${safe(copy.detail)}</small></div></button>`; mount.querySelector('[data-online-auth]').onclick = () => user ? signOut(auth) : signIn(); }
 function refreshGuardianRoomButtons() { const ready = Boolean(user && cloudState.kind === 'ok'); document.querySelectorAll('[data-guardian-room]').forEach(button => { button.disabled = !ready; button.textContent = ready ? t(teacherLocale(), 'room') : 'ক্লাউড সিঙ্ক প্রয়োজন'; button.title = ready ? '' : 'আগে Google সাইন-ইন ও ক্লাউড সিঙ্ক সম্পন্ন করুন'; }); }
+function decorate() { renderCloudControl(); refreshGuardianRoomButtons(); }
 function setStatus(kind, text = '', errorCode = '') { cloudState = { kind, message: text, errorCode }; document.querySelectorAll('.online-status').forEach(element => { element.className = `online-status ${kind}`; element.textContent = text || cloudCopy().title; }); renderCloudControl(); refreshGuardianRoomButtons(); }
 function syncError(error) { const code = String(error?.code || '').replace(/^firestore\//, ''); return code === 'permission-denied' ? 'permission-denied' : code; }
 const stableData = value => {
@@ -345,10 +347,6 @@ async function syncOnLogin() {
     setStatus('err', t(teacherLocale(), 'failed'), code);
     toast(code === 'permission-denied' ? (teacherLocale() === 'en' ? 'Firebase denied this account’s cloud access. Check the published Firestore rules and project.' : 'Firebase এই অ্যাকাউন্টের ক্লাউড অনুমতি দেয়নি। Firestore Rules ও প্রকল্প যাচাই করুন।') : (teacherLocale() === 'en' ? 'Cloud sync could not start.' : 'ক্লাউড সিঙ্ক শুরু করা যায়নি।'), 'error');
   }
-}onAuthStateChanged(auth, next => { user = next; if (!user) cloudState = { kind: 'offline', message: '', errorCode: '' }; setTimeout(() => { decorate(); if (user) syncOnLogin(); else resumeGuardian(); guardianManager(); }, 0); });
-window.SPTOnline = { queue, signIn, downloadGuardian, createRoom, approveGuardianRequest, rejectGuardianRequest, revokeGuardianAccess, endGuardianRoom };
-window.addEventListener('spt-render', () => setTimeout(() => { decorate(); guardianManager(); }, 0));
-window.addEventListener('spt-workspace-saved', () => queue());
 const inviteId = new URLSearchParams(location.search).get('guardianInvite');
 const resumeGuardian = async () => {
   if (user || inviteId) return;
@@ -358,4 +356,16 @@ const resumeGuardian = async () => {
   if (access.length === 1) renderGuardianWorkspace(access[0].token, access[0].record);
   else if (access.length > 1) renderGuardianHub();
 };
+
+// Guardian entry must win over teacher boot. The teacher dashboard must not sync or repaint while a Guardian invite is active.
 if (inviteId) guardianPortal(inviteId);
+
+onAuthStateChanged(auth, next => {
+  user = next;
+  if (inviteId) return;
+  if (!user) cloudState = { kind: 'offline', message: '', errorCode: '' };
+  setTimeout(() => { decorate(); if (user) syncOnLogin(); else resumeGuardian(); guardianManager(); }, 0);
+});
+window.SPTOnline = { queue, signIn, downloadGuardian, createRoom, approveGuardianRequest, rejectGuardianRequest, revokeGuardianAccess, endGuardianRoom };
+window.addEventListener('spt-render', () => setTimeout(() => { if (!inviteId) { decorate(); guardianManager(); } }, 0));
+window.addEventListener('spt-workspace-saved', () => { if (!inviteId) queue(); });
