@@ -348,6 +348,7 @@ async function syncOnLogin() {
     toast(code === 'permission-denied' ? (teacherLocale() === 'en' ? 'Firebase denied this account’s cloud access. Check the published Firestore rules and project.' : 'Firebase এই অ্যাকাউন্টের ক্লাউড অনুমতি দেয়নি। Firestore Rules ও প্রকল্প যাচাই করুন।') : (teacherLocale() === 'en' ? 'Cloud sync could not start.' : 'ক্লাউড সিঙ্ক শুরু করা যায়নি।'), 'error');
   }
 const inviteId = new URLSearchParams(location.search).get('guardianInvite');
+
 const resumeGuardian = async () => {
   if (user || inviteId) return;
   const rememberedInvite = localStorage.getItem(GUARDIAN_LAST_INVITE_KEY);
@@ -357,15 +358,58 @@ const resumeGuardian = async () => {
   else if (access.length > 1) renderGuardianHub();
 };
 
-// Guardian entry must win over teacher boot. The teacher dashboard must not sync or repaint while a Guardian invite is active.
-if (inviteId) guardianPortal(inviteId);
+// Publish the public bridge before registering callbacks so a callback error cannot hide the API.
+window.SPTOnline = {
+  queue,
+  signIn,
+  downloadGuardian,
+  createRoom,
+  approveGuardianRequest,
+  rejectGuardianRequest,
+  revokeGuardianAccess,
+  endGuardianRoom
+};
 
-onAuthStateChanged(auth, next => {
-  user = next;
-  if (inviteId) return;
-  if (!user) cloudState = { kind: 'offline', message: '', errorCode: '' };
-  setTimeout(() => { decorate(); if (user) syncOnLogin(); else resumeGuardian(); guardianManager(); }, 0);
+// Guardian entry must win over teacher boot. The teacher dashboard must not sync or repaint while an invite is active.
+if (inviteId) {
+  Promise.resolve(guardianPortal(inviteId)).catch(error => {
+    console.error('Guardian entry failed', error);
+    const shell = document.querySelector('.guardian-portal');
+    if (shell) shell.innerHTML = '<section class="guardian-portal-card"><h1>Guardian access could not open</h1><p>Please open the complete invitation link again.</p></section>';
+  });
+}
+
+try {
+  onAuthStateChanged(auth, next => {
+    try {
+      user = next;
+      // A Guardian invitation is independent of the teacher dashboard and Google sign-in.
+      if (inviteId) return;
+      if (!user) cloudState = { kind: 'offline', message: '', errorCode: '' };
+      setTimeout(() => {
+        decorate();
+        if (user) syncOnLogin();
+        else resumeGuardian();
+        guardianManager();
+      }, 0);
+    } catch (error) {
+      console.error('Cloud startup callback failed', error);
+      setStatus('err', t(teacherLocale(), 'failed'), 'startup-error');
+    }
+  });
+} catch (error) {
+  console.error('Cloud auth listener failed', error);
+  setStatus('err', t(teacherLocale(), 'failed'), 'startup-error');
+}
+
+window.addEventListener('spt-render', () => {
+  setTimeout(() => {
+    if (!inviteId) {
+      decorate();
+      guardianManager();
+    }
+  }, 0);
 });
-window.SPTOnline = { queue, signIn, downloadGuardian, createRoom, approveGuardianRequest, rejectGuardianRequest, revokeGuardianAccess, endGuardianRoom };
-window.addEventListener('spt-render', () => setTimeout(() => { if (!inviteId) { decorate(); guardianManager(); } }, 0));
-window.addEventListener('spt-workspace-saved', () => { if (!inviteId) queue(); });
+window.addEventListener('spt-workspace-saved', () => {
+  if (!inviteId) queue();
+});
