@@ -272,7 +272,7 @@ async function guardianManager() {
   panel.querySelectorAll('[data-end-room]').forEach(button => button.onclick = () => endGuardianRoom(button.dataset.endRoom, button.dataset.student));
 }
 function cloudCopy() { const lang = teacherLocale(), email = user?.email || ''; if (!user) return { title: lang === 'en' ? 'Cloud not connected' : 'ক্লাউড সংযুক্ত নয়', detail: lang === 'en' ? 'Sign in with Google' : 'Google দিয়ে সাইন-ইন' }; if (cloudState.kind === 'ok') return { title: lang === 'en' ? 'Cloud synced' : 'ক্লাউড সিঙ্ক হয়েছে', detail: email }; if (cloudState.kind === 'wait') return { title: lang === 'en' ? 'Saving to cloud…' : 'ক্লাউডে সংরক্ষণ হচ্ছে…', detail: email }; if (cloudState.errorCode === 'permission-denied') return { title: lang === 'en' ? 'Cloud permission problem' : 'ক্লাউড অনুমতি সমস্যা', detail: email || (lang === 'en' ? 'Local data remains available' : 'স্থানীয় তথ্য ব্যবহার করা যাবে') }; return { title: lang === 'en' ? 'Cloud sync failed' : 'ক্লাউড সিঙ্ক হয়নি', detail: email || (lang === 'en' ? 'Local data remains available' : 'স্থানীয় তথ্য ব্যবহার করা যাবে') }; }
-function renderCloudControl() { const mount = document.querySelector('#headerCloudSlot'); if (!mount) return; const copy = cloudCopy(), kind = cloudState.kind, icon = `<span class="cloud-icon-status ${kind}" aria-hidden="true"><svg viewBox="0 0 48 36" focusable="false"><path d="M14.5 29.5h20.3a8.2 8.2 0 0 0 1.2-16.3A12.5 12.5 0 0 0 12.2 16a6.8 6.8 0 0 0 2.3 13.5Z"/></svg><i class="cloud-dot"></i></span>`; mount.innerHTML = `<button class="profile-chip cloud-status-button cloud-status-${kind}" type="button" data-online-auth title="${safe(copy.title)}" aria-label="${safe(`${copy.title}. ${copy.detail}`)}">${icon}<div class="cloud-status-copy"><strong>${safe(copy.title)}</strong><small class="cloud-email">${safe(copy.detail)}</small></div></button>`; mount.querySelector('[data-online-auth]').onclick = () => user ? signOut(auth) : signIn(); }
+function renderCloudControl() { const mount = document.querySelector('#headerCloudSlot'); if (!mount) return; const copy = cloudCopy(), kind = cloudState.kind, icon = `<span class="cloud-icon-status ${kind}" aria-hidden="true"><svg viewBox="0 0 48 36" focusable="false"><path d="M14.5 29.5h20.3a8.2 8.2 0 0 0 1.2-16.3A12.5 12.5 0 0 0 12.2 16a6.8 6.8 0 0 0 2.3 13.5Z"/></svg><i class="cloud-dot"></i></span>`; mount.innerHTML = `<button class="profile-chip cloud-status-button cloud-status-${kind}" type="button" data-online-auth title="${safe(copy.title)}" aria-label="${safe(`${copy.title}. ${copy.detail}`)}">${icon}<div class="cloud-status-copy"><strong>${safe(copy.title)}</strong><small class="cloud-email">${safe(copy.detail)}</small></div></button>`; mount.querySelector('[data-online-auth]').onclick = () => { if (!user) { signIn(); return; } if (confirm(teacherLocale() === 'en' ? 'Do you want to log out from cloud sync?' : 'আপনি কি ক্লাউড সিঙ্ক থেকে লগ আউট করতে চান?')) signOut(auth); }; }
 function refreshGuardianRoomButtons() { const ready = Boolean(user && cloudState.kind === 'ok'); document.querySelectorAll('[data-guardian-room]').forEach(button => { button.disabled = !ready; button.textContent = ready ? t(teacherLocale(), 'room') : 'ক্লাউড সিঙ্ক প্রয়োজন'; button.title = ready ? '' : 'আগে Google সাইন-ইন ও ক্লাউড সিঙ্ক সম্পন্ন করুন'; }); }
 function decorate() { renderCloudControl(); refreshGuardianRoomButtons(); }
 function setStatus(kind, text = '', errorCode = '') { cloudState = { kind, message: text, errorCode }; document.querySelectorAll('.online-status').forEach(element => { element.className = `online-status ${kind}`; element.textContent = text || cloudCopy().title; }); renderCloudControl(); refreshGuardianRoomButtons(); }
@@ -347,6 +347,23 @@ async function syncOnLogin() {
     setStatus('err', t(teacherLocale(), 'failed'), code);
     toast(code === 'permission-denied' ? (teacherLocale() === 'en' ? 'Firebase denied this account’s cloud access. Check the published Firestore rules and project.' : 'Firebase এই অ্যাকাউন্টের ক্লাউড অনুমতি দেয়নি। Firestore Rules ও প্রকল্প যাচাই করুন।') : (teacherLocale() === 'en' ? 'Cloud sync could not start.' : 'ক্লাউড সিঙ্ক শুরু করা যায়নি।'), 'error');
   }
+}
+
+// Google is the only supported cloud provider. A function declaration (not a const) is used so
+// the header control and the entry gate can both reach it regardless of evaluation order.
+async function signIn() {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (error) {
+    console.error('Google sign-in failed', error);
+    const code = String(error?.code || '').replace(/^auth\//, '');
+    // Closing the Google window is a normal user choice, not a sync failure.
+    if (code === 'popup-closed-by-user' || code === 'cancelled-popup-request' || code === 'user-cancelled') { setStatus('offline'); return; }
+    setStatus('err', t(teacherLocale(), 'failed'), code);
+    toast(code === 'unauthorized-domain' ? (teacherLocale() === 'en' ? 'This site address is not authorised in Firebase Authentication.' : 'এই সাইট ঠিকানাটি Firebase Authentication-এ অনুমোদিত নয়।') : code === 'popup-blocked' ? (teacherLocale() === 'en' ? 'The browser blocked the Google sign-in window. Allow pop-ups and try again.' : 'ব্রাউজার Google সাইন-ইন উইন্ডো আটকে দিয়েছে। পপ-আপ অনুমতি দিয়ে আবার চেষ্টা করুন।') : (teacherLocale() === 'en' ? 'Google sign-in could not be completed. Local data is still safe on this device.' : 'Google সাইন-ইন সম্পন্ন হয়নি। স্থানীয় তথ্য এই ডিভাইসে নিরাপদে আছে।'), 'error');
+  }
+}
+
 const inviteId = new URLSearchParams(location.search).get('guardianInvite');
 
 const resumeGuardian = async () => {
@@ -362,8 +379,10 @@ const resumeGuardian = async () => {
 window.SPTOnline = {
   queue,
   signIn,
-  downloadGuardian,
-  createRoom,
+  // downloadGuardian and createRoom were listed here but no longer exist in this file and have no
+  // caller anywhere in the project. Guardian room creation now lives in the student workspace bundle
+  // as window.SPTGuardianWorkspace.createOrGetRoom. Listing undefined names here threw a
+  // ReferenceError that stopped this whole module from initialising.
   approveGuardianRequest,
   rejectGuardianRequest,
   revokeGuardianAccess,
