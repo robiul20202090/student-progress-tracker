@@ -163,6 +163,27 @@ The next major packaging step under consideration is a Trusted Web Activity (TWA
 
 The TWA phase should not weaken the local-first workflow or Guardian privacy model. Any Android packaging work should be planned and tested separately from ordinary GitHub file repairs.
 
+## Removed unused files (Sept 2026 cleanup)
+
+Several files in the repository were not referenced by the live app and were removed:
+old i18n/demo/journey/passport-guidance scripts, old CSS versions (`v3.css`, `v4.css`),
+`.before-*` backup copies left in the live folders, and 12 outdated compiled bundles
+under `student-workspace/assets/` (only `index-D2ANdwIU.js` and `index-D_Dn3Xft.css`
+are actually used). None of these were wired into `index.html` or `student-workspace/index.html`.
+If you need to see any of them, check the Git history from before this cleanup.
+
+Root also has a few older upload/handoff notes (`README-GITHUB-UPLOAD.md`, `UPLOAD-README.md`,
+`V4.8-EXPERIMENT-README.md`) kept for release history rather than deleted — this file
+(`README.md`) is the current one.
+
+Also removed: a leftover Manus preview-builder script and inline editing overlay, and a
+Manus analytics tracker, that were shipping to real visitors in `student-workspace/index.html`
+but were only meant for the build/preview environment.
+
+Also fixed: the root service worker (`sw.js`) was caching an outdated student-workspace
+bundle filename that no longer matched what `student-workspace/index.html` actually loads,
+which could cause the offline/PWA copy of that screen to serve stale code.
+
 ## References
 
 The implementation-specific descriptions above document this repository’s current design. The following external references explain the platform concepts used by the project:
