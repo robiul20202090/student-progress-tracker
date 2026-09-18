@@ -200,4 +200,4 @@ The implementation-specific descriptions above document this repository’s curr
 
 **Maintainer note:** Keep this README in the repository root and update its release-status paragraph whenever a future package changes the architecture or security model.
 
-**Author:** Manus AI
+**Author:** ROBIUL ISLAM ROBI
