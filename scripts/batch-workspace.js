@@ -31,7 +31,7 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const toast = (message, type='') => { const box=document.createElement('div'); box.className=`toast ${type}`; box.textContent=message; $('#toastRegion').append(box); setTimeout(()=>box.remove(),3600); };
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)||'{}'); } catch { return {}; } };
-  const save = state => { localStorage.setItem(KEY, JSON.stringify(state)); window.SPTOnline?.queue?.(); window.dispatchEvent(new CustomEvent('spt-dashboard-state-changed')); };
+  const save = (state, opts={}) => { localStorage.setItem(KEY, JSON.stringify(state)); window.SPTOnline?.queue?.(); window.dispatchEvent(new CustomEvent('spt-dashboard-state-changed',{detail:{source:'batch-workspace',keepView:!!opts.keepView}})); };
   const getState = () => { const state=load(); state.batches ||= []; state.students ||= []; return state; };
   const findBatch = batchId => getState().batches.find(x=>x.id===batchId);
   const closeModal = () => { if(modal.open) modal.close(); modalBody.innerHTML=''; };
@@ -52,7 +52,7 @@
     w.activeRoutineId ||= w.routines[0].id;
     return w;
   };
-  const commit = mutate => { const state=getState(); const batch=state.batches.find(x=>x.id===activeBatch); if(!batch) return; ensureWorkspace(batch); mutate(batch, state); save(state); };
+  const commit = mutate => { const state=getState(); const batch=state.batches.find(x=>x.id===activeBatch); if(!batch) return; ensureWorkspace(batch); mutate(batch, state); save(state,{keepView:true}); };
   const routineFor = batch => ensureWorkspace(batch).routines.find(x=>x.id===ensureWorkspace(batch).activeRoutineId) || ensureWorkspace(batch).routines[0];
   const dayDates = key => { const d=parseMonth(key), year=d.getFullYear(), month=d.getMonth(), days=[]; for(let date=1;new Date(year,month,date).getMonth()===month;date++){const now=new Date(year,month,date);days.push(now)} return days; };
   const subjectOptions = batch => [...new Set([...(batch.subjects||[]),...SUBJECTS])];

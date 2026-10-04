@@ -286,6 +286,17 @@ const fingerprint = value => JSON.stringify(stableData(value || {}));
 const markLocalDirty = () => localStorage.setItem(SYNC_DIRTY_KEY, '1');
 const clearLocalDirty = () => localStorage.removeItem(SYNC_DIRTY_KEY);
 const localIsDirty = () => localStorage.getItem(SYNC_DIRTY_KEY) === '1';
+const downloadCloudBackup = remote => {
+  if (!remote) return false;
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(remote, null, 2)], { type: 'application/json' }));
+  link.download = `student-progress-cloud-before-local-upload-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  return true;
+};
 const downloadLocalBackup = () => {
   const payload = full();
   if (!payload) return false;
@@ -318,18 +329,31 @@ async function syncOnLogin() {
     if (remote && hasTeacherData(remote) && local && hasTeacherData(local)) {
       const localFingerprint = fingerprint(local);
       const remoteFingerprint = fingerprint(remote);
+      const baseFingerprint = localStorage.getItem(SYNC_FINGERPRINT_KEY) || '';
       if (localFingerprint === remoteFingerprint) {
         localStorage.setItem(SYNC_FINGERPRINT_KEY, localFingerprint);
         clearLocalDirty();
-      } else if (localIsDirty()) {
+      } else if (baseFingerprint && remoteFingerprint === baseFingerprint) {
+        // Cloud has not changed since the last sync, so this device holds the newer work (for example edits made inside the student workspace page).
+        // Upload it automatically. No popup, and nothing on this device is replaced.
         await push();
       } else {
-        const useCloud = confirm(teacherLocale() === 'en'
-          ? 'New cloud data is available. Press OK only to replace this device data with the cloud copy. Cancel keeps this device data.'
-          : 'নতুন ক্লাউড তথ্য এসেছে। এই ডিভাইসের তথ্য ক্লাউড কপি দিয়ে বদলাতে শুধু ঠিক আছে চাপুন। বাতিল করলে এই ডিভাইসের তথ্য থাকবে।');
+        // The cloud copy changed since the last sync. Never guess: ask, with clear wording. Backups are downloaded before anything is replaced.
+        const localChanged = !baseFingerprint || localFingerprint !== baseFingerprint;
+        const en = teacherLocale() === 'en';
+        const useCloud = confirm(localChanged
+          ? (en
+            ? 'This device and the cloud both have different data.\n\nOK = bring the cloud data to this device (a backup of this device is downloaded first).\nCancel = keep this device data and upload it to the cloud (a backup of the cloud copy is downloaded first).'
+            : 'এই ডিভাইস ও ক্লাউড—দুই জায়গাতেই আলাদা তথ্য আছে।\n\nঠিক আছে = ক্লাউডের তথ্য এই ডিভাইসে আনুন (আগে এই ডিভাইসের ব্যাকআপ ডাউনলোড হবে)।\nবাতিল = এই ডিভাইসের তথ্য রাখুন ও ক্লাউডে আপলোড করুন (আগে ক্লাউডের ব্যাকআপ ডাউনলোড হবে)।')
+          : (en
+            ? 'The cloud has newer data, and this device has no changes since the last sync.\n\nOK = bring the cloud data to this device (a backup of this device is downloaded first).\nCancel = leave this device as it is.'
+            : 'ক্লাউডে নতুন তথ্য আছে, আর শেষ সিঙ্কের পর এই ডিভাইসে কোনো পরিবর্তন হয়নি।\n\nঠিক আছে = ক্লাউডের তথ্য এই ডিভাইসে আনুন (আগে এই ডিভাইসের ব্যাকআপ ডাউনলোড হবে)।\nবাতিল = এই ডিভাইস যেমন আছে তেমনই থাকবে।'));
         if (useCloud) {
           downloadLocalBackup();
           applyCloudPayload(remote);
+        } else if (localChanged) {
+          downloadCloudBackup(remote);
+          await push();
         }
       }
     } else if (remote && hasTeacherData(remote) && (!local || !hasTeacherData(local))) {
