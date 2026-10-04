@@ -1,4 +1,4 @@
-const CACHE_NAME = 'student-progress-offline-v30-release1-sync-fee-fix';
+const CACHE_NAME = 'student-progress-offline-v31-release1-fresh-install';
 const ROOT = './';
 const APP_SHELL = [
   ROOT, './index.html', './manifest.json?v=mobile-final-2', './brand-logo.png', './pwa-icon-192-v2.png', './pwa-icon-512-v2.png', './pwa-icon-maskable-512-v2.png',
@@ -11,7 +11,7 @@ const APP_SHELL = [
 );
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => Promise.all(APP_SHELL.map(url => cache.add(new Request(url, { cache: 'reload' }))))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
